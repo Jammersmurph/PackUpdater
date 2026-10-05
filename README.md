@@ -29,7 +29,7 @@ precedence over the file:
 | `packupdater.dev-url` | *(empty)* | Fallback pack URL, used only when `url` is blank and `dev` is true. |
 | `packupdater.dev` | `false` | Use `dev-url` instead of `url`. |
 | `packupdater.installer-url` | upstream PackWiz | GitHub "latest release" API URL for the PackWiz installer. Blank disables the self-update. |
-| `packupdater.installer-asset` | `packwiz-installer.jar` | Release asset to download from that release. |
+| `packupdater.installer-asset` | `packwiz-installer.jar` | Release asset to download. Passed to the bootstrap as a JVM system property, not a CLI flag, because the installer rejects unknown arguments. |
 | `packupdater.installer-token` | *(empty)* | GitHub token, only needed for private repositories. |
 | `packupdater.gui` | `true` | Show the PackWiz installer's window on launch, which is where optional mods are chosen. Forced off when headless. |
 | `packupdater.skip` | `false` | Skip the updater entirely. |
@@ -37,9 +37,11 @@ precedence over the file:
 Example as JVM arguments:
 
 ```
--Dpackupdater.url=https://example.com/pack/pack.toml
--Dpackupdater.installer-url=https://api.github.com/your-org/packwiz-installer/releases/latest
+-Dpackupdater.url=https://raw.githubusercontent.com/you/pack/main/pack.toml
 ```
+
+`packupdater.url` must be a URL to the raw file, not a `github.com` page URL. A `github.com`
+blob or tree link returns HTML and the installer will fail with a 404.
 
 JVM arguments are easier to set per-instance in launchers such as Prism Launcher, HMCL, or
 ATLauncher; the config file is easier to share with a whole team.

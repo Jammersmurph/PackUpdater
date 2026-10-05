@@ -53,18 +53,20 @@ public final class UpdaterBootstrap {
 
         List<String> command = new ArrayList<>();
         command.add(javaBin);
+        // Must come before -jar: the JVM consumes these, so they never reach the installer's
+        // own argument parser, which only accepts a fixed set of bootstrap-* options.
+        command.add("-D" + UpdaterConfig.KEY_INSTALLER_ASSET + "=" + config.installerAsset);
         command.add("-jar");
         command.add(bootstrapJar.toString());
         command.add(packUrl);
 
-        // Self-update wiring for the bootstrapper. The installer release URL and asset name
-        // are configurable; omitting the URL disables the self-update entirely.
+        // Self-update wiring for the bootstrapper. The installer release URL is configurable;
+        // omitting it disables the self-update entirely. These are all options the installer
+        // also registers, so it tolerates them being forwarded.
         if (!config.installerUrl.isEmpty()) {
             command.add("--bootstrap-update-url");
             command.add(config.installerUrl);
         }
-        command.add("--bootstrap-asset");
-        command.add(config.installerAsset);
         if (!config.installerToken.isEmpty()) {
             command.add("--bootstrap-update-token");
             command.add(config.installerToken);

@@ -32,6 +32,13 @@ import org.apache.commons.cli.ParseException;
 
 public class Bootstrap {
     public static final String DEFAULT_ASSET_NAME = "packwiz-installer.jar";
+    /**
+     * Overrides the release asset to download. This is a system property rather than a
+     * command line option on purpose: every argument is forwarded verbatim to the
+     * installer, whose parser only understands a fixed set of bootstrap-* options, so
+     * adding a new option here would make the installer reject it.
+     */
+    public static final String ASSET_PROPERTY = "packupdater.installer-asset";
     private static String updateURL = null;
     private static String assetName = DEFAULT_ASSET_NAME;
     private static boolean skipUpdate = false;
@@ -46,6 +53,10 @@ public class Bootstrap {
         catch (ParseException e) {
             Bootstrap.showError(e, "There was an error parsing command line arguments:");
             System.exit(1);
+        }
+        String configuredAsset = System.getProperty(ASSET_PROPERTY);
+        if (configuredAsset != null && !configuredAsset.isBlank()) {
+            assetName = configuredAsset.trim();
         }
         if (jarPath == null) {
             jarPath = assetName;
@@ -152,7 +163,6 @@ public class Bootstrap {
         Options options = new Options();
         options.addOption(null, "bootstrap-update-url", true, "Github API URL for checking for updates");
         options.addOption(null, "bootstrap-update-token", true, "Github API Access Token, for private repositories");
-        options.addOption(null, "bootstrap-asset", true, "Release asset name to download (default: " + DEFAULT_ASSET_NAME + ")");
         options.addOption(null, "bootstrap-no-update", false, "Don't update pack-updater");
         options.addOption(null, "bootstrap-main-jar", true, "Location of the pack-updater JAR file");
         options.addOption("g", "no-gui", false, "Don't display a GUI to show update progress");
@@ -176,9 +186,6 @@ public class Bootstrap {
         }
         if (cmd.hasOption("bootstrap-update-token")) {
             accessToken = cmd.getOptionValue("bootstrap-update-token");
-        }
-        if (cmd.hasOption("bootstrap-asset")) {
-            assetName = cmd.getOptionValue("bootstrap-asset");
         }
         if (cmd.hasOption("bootstrap-no-update")) {
             skipUpdate = true;
