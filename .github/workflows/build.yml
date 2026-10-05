@@ -73,10 +73,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
           tag="${GITHUB_REF_NAME}"
+          version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
+          if [[ "$tag" != "v${version}" ]]; then
+            echo "::error::tag $tag does not match mod_version=$version in gradle.properties"
+            exit 1
+          fi
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes \
-            build/libs/*.jar \
+            build/libs/*.jar
           echo "Published $tag (mod_version=$version)"
