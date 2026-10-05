@@ -84,35 +84,31 @@ when a `v*` tag is pushed.
 
 ## Using it in a modpack
 
-Add the mod to your PackWiz index as a `.pw.toml` override with a `[update.github]` block, so
-`packwiz update` keeps it current without you touching anything:
+Every release ships a ready-to-use `packupdater.pw.toml` next to the jar. Grab it from the
+[releases page](https://github.com/Jammersmurph/PackUpdater/releases), drop it into your pack's
+`mods/`, and run `packwiz refresh` once.
+
+That file is universal. Releases publish the jar as a version-less `packupdater.jar` and the
+override carries an `[update.github]` block, so a single copy keeps working forever -
+`packwiz update` rewrites the url, hash and tag as newer releases appear. Do not hand-edit the
+url or hash; if you do, `packwiz update` will correct it back.
+
+Two files are needed in total:
+
+1. `mods/packupdater.pw.toml` — from the release assets
+2. `config/packupdater.properties` — the pack url, which the mod cannot discover on its own
 
 ```toml
-name = "PackUpdater"
-filename = "packupdater.jar"
-side = "both"
-
-[download]
-url = "https://github.com/Jammersmurph/PackUpdater/releases/download/v1.0.2/packupdater.jar"
-hash-format = "sha256"
-hash = "0000000000000000000000000000000000000000000000000000000000000000"
-
-[update.github]
-slug = "Jammersmurph/PackUpdater"
-tag = "v1.0.2"
-regex = "^packupdater\.jar$"
+# config/packupdater.properties, shipped in your pack
+packupdater.url=https://raw.githubusercontent.com/you/pack/main/pack.toml
 ```
 
-Run `packwiz refresh` once to register it, then `packwiz update` from then on. End users only
-need the config file - they never touch JVM arguments.
+Then run `packwiz refresh`. No CI changes are needed: if your pack already runs
+`packwiz update --all`, PackUpdater is picked up automatically as another external file.
 
-Note that packwiz's GitHub updater overwrites `filename` with the name of the release asset, so
-releases publish the jar as the version-less `packupdater.jar`. If you name the asset
-`packupdater-1.0.2.jar` instead, every update will rewrite `filename` and leave a differently
-named jar behind in each instance.
-
-The one required setting is `packupdater.url`. Everything else has a working default, including
-the installer, so a stock install needs nothing but that.
+On a brand new instance the config file does not exist for the first launch, so that launch
+skips the update and it starts working from the second one. Launchers that pre-install pack
+files avoid this.
 
 ## License
 

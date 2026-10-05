@@ -84,8 +84,36 @@ jobs:
           # "filename" with the release asset name on every update. A stable name keeps
           # instances at mods/packupdater.jar instead of accumulating one jar per release.
           install -m 644 build/libs/packupdater-"${version}".jar packupdater.jar
+
+          # Ship the PackWiz override alongside the jar. Because the asset name is
+          # version-less and the file carries an [update.github] block, one copy works for
+          # every future release: packwiz update rewrites url, hash and tag as needed.
+          # Written with printf, not a heredoc, so YAML block indentation and backslash
+          # escaping cannot corrupt the TOML.
+          sha="$(sha256sum packupdater.jar | cut -d' ' -f1)"
+          {
+            printf 'name = "PackUpdater"\n'
+            printf 'filename = "packupdater.jar"\n'
+            printf 'side = "both"\n'
+            printf '\n'
+            printf '[download]\n'
+            printf 'url = "https://github.com/%s/releases/download/%s/packupdater.jar"\n' "$GITHUB_REPOSITORY" "$tag"
+            printf 'hash-format = "sha256"\n'
+            printf 'hash = "%s"\n' "$sha"
+            printf '\n'
+            printf '[update.github]\n'
+            printf 'slug = "%s"\n' "$GITHUB_REPOSITORY"
+            printf 'tag = "%s"\n' "$tag"
+            printf 'regex = "^packupdater\\\\.jar$"\n'
+          } > packupdater.pw.toml
+
+          # Fail loudly rather than publishing an override packwiz cannot parse.
+          grep -qx "hash = \"${sha}\"" packupdater.pw.toml
+          grep -qx "tag = \"${tag}\"" packupdater.pw.toml
+
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes \
-            packupdater.jar
-          echo "Published $tag (mod_version=$version) as asset packupdater.jar"
+            packupdater.jar \
+            packupdater.pw.toml
+          echo "Published $tag (mod_version=$version) as packupdater.jar + packupdater.pw.toml"
