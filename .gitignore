@@ -8,3 +8,8 @@ run/
 bootstrap/build/
 bootstrap/out/
 bootstrap/stage/
+
+# PackWiz override files for packs that ship this mod. They pin a specific
+# release and belong in the pack repo, not here.
+mods/
+packupdater.pw.toml
