@@ -1,15 +1,16 @@
-.gradle/
-build/
-.idea/
-*.iml
-run/
 
-# bootstrap/ scratch output
 bootstrap/build/
 bootstrap/out/
+# bootstrap/ scratch output
 bootstrap/stage/
-
-# PackWiz override files for packs that ship this mod. They pin a specific
-# release and belong in the pack repo, not here.
+build/
+.gradle/
+.idea/
+*.iml
 mods/
+pack-config/
 packupdater.pw.toml
+# PackWiz override files for packs that ship this mod. They pin a specific
+# Reference config for packs that ship this mod; sample values only.
+# release and belong in the pack repo, not here.
+run/
