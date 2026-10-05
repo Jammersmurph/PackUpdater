@@ -52,11 +52,12 @@ public final class UpdaterConfig {
             #   packupdater.url=https://example.com/pack/pack.toml
             packupdater.url=
 
-            # Optional fallback used only when packupdater.url is blank and
-            # packupdater.dev is true.
+            # URL of the pack.toml to sync against when packupdater.dev is true. When dev
+            # is true and this is set, it takes precedence over packupdater.url, so a
+            # testing branch only needs to flip the flag.
             # packupdater.dev-url=
 
-            # Use packupdater.dev-url instead of packupdater.url.
+            # Sync packupdater.dev-url instead of packupdater.url.
             packupdater.dev=false
 
             # GitHub "latest release" API URL for the PackWiz installer that PackUpdater
@@ -131,14 +132,20 @@ public final class UpdaterConfig {
     }
 
     /**
-     * Effective pack.toml URL. An explicit {@code packupdater.url} always wins; the dev
-     * branch is only consulted when it is unset.
+     * Effective pack.toml URL. When {@code packupdater.dev} is true and a dev URL is set,
+     * the dev URL wins, so testing a branch is a one-flag change even if the pack ships a
+     * production {@code packupdater.url}. Otherwise an explicit {@code packupdater.url} is
+     * used, and the dev URL is only a fallback for a file that sets neither.
      */
     public String effectivePackUrl() {
+        boolean dev = getBoolean(KEY_DEV, false);
+        if (dev && !devUrl.isEmpty()) {
+            return devUrl;
+        }
         if (!packUrl.isEmpty()) {
             return packUrl;
         }
-        return getBoolean(KEY_DEV, false) ? devUrl : "";
+        return dev ? devUrl : "";
     }
 
     private void writeDefault(Path path) {

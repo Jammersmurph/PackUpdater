@@ -26,8 +26,8 @@ precedence over the file:
 | Key | Default | Purpose |
 | --- | --- | --- |
 | `packupdater.url` | *(empty)* | URL of the `pack.toml` to sync against. Required. |
-| `packupdater.dev-url` | *(empty)* | Fallback pack URL, used only when `url` is blank and `dev` is true. |
-| `packupdater.dev` | `false` | Use `dev-url` instead of `url`. |
+| `packupdater.dev-url` | *(empty)* | Pack URL to use when `dev` is true. Takes precedence over `url` while `dev` is on. |
+| `packupdater.dev` | `false` | Sync `dev-url` instead of `url`. |
 | `packupdater.installer-url` | upstream PackWiz | GitHub "latest release" API URL for the PackWiz installer. Blank disables the self-update. |
 | `packupdater.installer-asset` | `packwiz-installer.jar` | Release asset to download. Passed to the bootstrap as a JVM system property, not a CLI flag, because the installer rejects unknown arguments. |
 | `packupdater.installer-token` | *(empty)* | GitHub token, only needed for private repositories. |

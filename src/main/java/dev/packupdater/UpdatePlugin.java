@@ -33,7 +33,9 @@ public class UpdatePlugin implements ITransformationService {
 
         String packUrl = config.effectivePackUrl();
         if (packUrl.isEmpty()) {
-            PackUpdater.LOGGER.warn("[PackUpdater] No pack URL configured ({} is blank), skipping update.", UpdaterConfig.KEY_URL);
+            PackUpdater.LOGGER.warn(
+                    "[PackUpdater] No pack URL configured ({} is blank and {} is blank or {} is false), skipping update.",
+                    UpdaterConfig.KEY_URL, UpdaterConfig.KEY_DEV_URL, UpdaterConfig.KEY_DEV);
             return;
         }
 
