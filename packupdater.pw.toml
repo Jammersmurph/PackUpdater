@@ -1,0 +1,8 @@
+name = "PackUpdater"
+filename = "packupdater-1.0.1.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jammersmurph/PackUpdater/releases/download/v1.0.1/packupdater-1.0.1.jar"
+hash-format = "sha512"
+hash = "f8149296f7615c4940ec19f6c65855c889d7d0b6292f35776d3f51914ff6368526cdc0d3a3904f9bb34797d099455b6c4c123a96cfd4549ef9dd1ba8fc969b78"

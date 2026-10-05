@@ -79,8 +79,13 @@ jobs:
             echo "::error::tag $tag does not match mod_version=$version in gradle.properties"
             exit 1
           fi
+          # Publish under a version-less asset name on purpose. Packs track this mod with a
+          # [update.github] block, and packwiz's github updater overwrites the .pw.toml
+          # "filename" with the release asset name on every update. A stable name keeps
+          # instances at mods/packupdater.jar instead of accumulating one jar per release.
+          install -m 644 build/libs/packupdater-"${version}".jar packupdater.jar
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes \
-            build/libs/*.jar
-          echo "Published $tag (mod_version=$version)"
+            packupdater.jar
+          echo "Published $tag (mod_version=$version) as asset packupdater.jar"

@@ -84,9 +84,32 @@ when a `v*` tag is pushed.
 
 ## Using it in a modpack
 
-Ship the jar from the [releases page](https://github.com/Jammersmurph/PackUpdater/releases) and
-commit a `pack.toml` for it in your PackWiz index. End users then only need the config file -
-they never have to touch JVM arguments.
+Add the mod to your PackWiz index as a `.pw.toml` override with a `[update.github]` block, so
+`packwiz update` keeps it current without you touching anything:
+
+```toml
+name = "PackUpdater"
+filename = "packupdater.jar"
+side = "both"
+
+[download]
+url = "https://github.com/Jammersmurph/PackUpdater/releases/download/v1.0.2/packupdater.jar"
+hash-format = "sha256"
+hash = "0000000000000000000000000000000000000000000000000000000000000000"
+
+[update.github]
+slug = "Jammersmurph/PackUpdater"
+tag = "v1.0.2"
+regex = "^packupdater\.jar$"
+```
+
+Run `packwiz refresh` once to register it, then `packwiz update` from then on. End users only
+need the config file - they never touch JVM arguments.
+
+Note that packwiz's GitHub updater overwrites `filename` with the name of the release asset, so
+releases publish the jar as the version-less `packupdater.jar`. If you name the asset
+`packupdater-1.0.2.jar` instead, every update will rewrite `filename` and leave a differently
+named jar behind in each instance.
 
 The one required setting is `packupdater.url`. Everything else has a working default, including
 the installer, so a stock install needs nothing but that.
