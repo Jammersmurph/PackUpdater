@@ -1,0 +1,10 @@
+.gradle/
+build/
+.idea/
+*.iml
+run/
+
+# bootstrap/ scratch output
+bootstrap/build/
+bootstrap/out/
+bootstrap/stage/
