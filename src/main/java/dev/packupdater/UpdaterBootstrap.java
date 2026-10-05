@@ -27,6 +27,24 @@ public final class UpdaterBootstrap {
 
     private UpdaterBootstrap() {}
 
+    /**
+     * Whether to let the PackWiz installer open its own window.
+     *
+     * <p>The installer's GUI is what exposes optional mods, so it is on by default. A
+     * headless session (a dedicated server, a CI job) cannot show a window and would fail
+     * trying, so fall back to the non-GUI path there regardless of configuration.
+     */
+    private static boolean useGui(UpdaterConfig config) {
+        if (!config.gui) {
+            return false;
+        }
+        if (java.awt.GraphicsEnvironment.isHeadless()) {
+            PackUpdater.LOGGER.info("[PackUpdater] No display detected, running the installer without a GUI.");
+            return false;
+        }
+        return true;
+    }
+
     public static void runUpdate(UpdaterConfig config, String packUrl) throws Exception {
         Path tempDir = Files.createTempDirectory("packupdater");
         Path bootstrapJar = tempDir.resolve("packupdater-bootstrap.jar");
@@ -51,7 +69,7 @@ public final class UpdaterBootstrap {
             command.add("--bootstrap-update-token");
             command.add(config.installerToken);
         }
-        if (!config.gui) {
+        if (!useGui(config)) {
             command.add("-g");
         }
 

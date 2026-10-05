@@ -1,12 +1,12 @@
 ## PackUpdater
 
-A NeoForge mod that updates a [PackWiz](https://packwiz.dev) modpack before Minecraft starts,
-reporting progress on the loading screen.
+A NeoForge mod that updates a [PackWiz](https://packwiz.dev) modpack before Minecraft starts.
+Everything is configured through a file in the instance, so players never need JVM arguments.
 
 ## How it works
 
-PackUpdater hooks into ModLauncher as an `ITransformationService`, which runs early enough that
-the NeoForge loading screen is still available to display progress. On launch it:
+PackUpdater hooks into ModLauncher as an `ITransformationService`, which runs early enough to
+hand off to the PackWiz installer before mods load. On launch it:
 
 1. Reads its configuration (see below).
 2. Extracts an embedded bootstrap jar to a temp directory.
@@ -31,7 +31,7 @@ precedence over the file:
 | `packupdater.installer-url` | upstream PackWiz | GitHub "latest release" API URL for the PackWiz installer. Blank disables the self-update. |
 | `packupdater.installer-asset` | `packwiz-installer.jar` | Release asset to download from that release. |
 | `packupdater.installer-token` | *(empty)* | GitHub token, only needed for private repositories. |
-| `packupdater.gui` | `false` | Let the bootstrapper show its own window instead of driving the loading screen. |
+| `packupdater.gui` | `true` | Show the PackWiz installer's window on launch, which is where optional mods are chosen. Forced off when headless. |
 | `packupdater.skip` | `false` | Skip the updater entirely. |
 
 Example as JVM arguments:
@@ -43,6 +43,23 @@ Example as JVM arguments:
 
 JVM arguments are easier to set per-instance in launchers such as Prism Launcher, HMCL, or
 ATLauncher; the config file is easier to share with a whole team.
+
+### Optional mods
+
+Optional mods come from the `[optional-mods]` section of your pack's `index.toml`. When they are
+present, the PackWiz installer shows an **"Optional mods..."** button in its window and asks what to
+install on each run where the selection has changed.
+
+That window is only shown when `packupdater.gui` is on, which is the default. PackUpdater passes
+`-g` only when you turn it off, or when there is no display at all, so a dedicated server or CI job
+falls back to a silent update instead of failing on a missing window.
+
+Two consequences worth knowing:
+
+- Startup blocks. Minecraft waits on the installer until the window closes, and the loading screen
+  sits behind it.
+- With the window shown you get two progress indicators: the installer's own window, and the
+  Minecraft loading screen that PackUpdater drives from the installer's output.
 
 ### Installer releases
 

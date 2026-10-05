@@ -71,9 +71,11 @@ public final class UpdaterConfig {
             # Optional GitHub token, only needed for private repositories.
             # packupdater.installer-token=
 
-            # Let the bootstrapper show its own progress window instead of driving the
-            # Minecraft loading screen. Requires a graphical session.
-            packupdater.gui=false
+            # Show the PackWiz installer's window on launch. This is what exposes the
+            # installer's optional mods list, and it blocks startup until you close it.
+            # Set to false for a silent, unattended update; it is forced off automatically
+            # when there is no display, e.g. on a dedicated server.
+            packupdater.gui=true
 
             # Skip the updater entirely.
             packupdater.skip=false
@@ -119,7 +121,7 @@ public final class UpdaterConfig {
         }
 
         config.skip = config.getBoolean(KEY_SKIP, false);
-        config.gui = config.getBoolean(KEY_GUI, false);
+        config.gui = config.getBoolean(KEY_GUI, true);
         config.packUrl = config.getString(KEY_URL);
         config.devUrl = config.getString(KEY_DEV_URL);
         config.installerUrl = config.getString(KEY_INSTALLER_URL, DEFAULT_INSTALLER_URL);
