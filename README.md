@@ -28,7 +28,7 @@ precedence over the file:
 | `packupdater.url` | *(empty)* | URL of the `pack.toml` to sync against. Required. |
 | `packupdater.dev-url` | *(empty)* | Fallback pack URL, used only when `url` is blank and `dev` is true. |
 | `packupdater.dev` | `false` | Use `dev-url` instead of `url`. |
-| `packupdater.installer-url` | *(empty)* | GitHub "latest release" API URL for the PackWiz installer. Blank disables the installer self-update. |
+| `packupdater.installer-url` | upstream PackWiz | GitHub "latest release" API URL for the PackWiz installer. Blank disables the self-update. |
 | `packupdater.installer-asset` | `packwiz-installer.jar` | Release asset to download from that release. |
 | `packupdater.installer-token` | *(empty)* | GitHub token, only needed for private repositories. |
 | `packupdater.gui` | `false` | Let the bootstrapper show its own window instead of driving the loading screen. |
@@ -46,15 +46,31 @@ ATLauncher; the config file is easier to share with a whole team.
 
 ### Installer releases
 
-`packupdater.installer-url` must point at a GitHub release whose assets include a file named
-`packupdater.installer-asset`. If the named asset is missing, the bootstrap logs the mismatch and
+Out of the box PackUpdater bootstraps
+[packwiz/packwiz-installer](https://github.com/packwiz/packwiz-installer), so no installer
+configuration is needed. `packupdater.installer-url` only needs changing if you maintain your own
+build of the installer, and it must point at a GitHub release whose assets include a file named
+`packupdater.installer-asset`. If that asset is missing, the bootstrap reports the mismatch and
 falls back to whatever installer it already has, if any.
 
 ## Building
 
 ```
+./bootstrap/build.sh   # rebuilds the embedded bootstrap jar
 ./gradlew build
 ```
+
+CI runs both steps on every push and pull request, and publishes the mod jar as a release asset
+when a `v*` tag is pushed.
+
+## Using it in a modpack
+
+Ship the jar from the [releases page](https://github.com/Jammersmurph/PackUpdater/releases) and
+commit a `pack.toml` for it in your PackWiz index. End users then only need the config file -
+they never have to touch JVM arguments.
+
+The one required setting is `packupdater.url`. Everything else has a working default, including
+the installer, so a stock install needs nothing but that.
 
 ## License
 

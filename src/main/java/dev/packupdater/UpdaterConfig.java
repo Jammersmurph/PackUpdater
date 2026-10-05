@@ -36,6 +36,8 @@ public final class UpdaterConfig {
     public static final String KEY_INSTALLER_TOKEN = "packupdater.installer-token";
     public static final String KEY_GUI = "packupdater.gui";
 
+    public static final String DEFAULT_INSTALLER_URL =
+            "https://api.github.com/repos/packwiz/packwiz-installer/releases/latest";
     public static final String DEFAULT_INSTALLER_ASSET = "packwiz-installer.jar";
 
     private static final String CONFIG_RELATIVE_PATH = "config/packupdater.properties";
@@ -58,9 +60,10 @@ public final class UpdaterConfig {
             packupdater.dev=false
 
             # GitHub "latest release" API URL for the PackWiz installer that PackUpdater
-            # bootstraps and self-updates. Leave blank to disable the installer
-            # self-update (the installer will then only run if already present).
-            packupdater.installer-url=
+            # bootstraps and self-updates. Defaults to the upstream PackWiz installer, so you
+            # normally do not need to touch this. Point it elsewhere only if you maintain
+            # your own build of the installer. Leave blank to disable the self-update.
+            packupdater.installer-url=https://api.github.com/repos/packwiz/packwiz-installer/releases/latest
 
             # Release asset name to download from that release.
             packupdater.installer-asset=packwiz-installer.jar
@@ -119,7 +122,7 @@ public final class UpdaterConfig {
         config.gui = config.getBoolean(KEY_GUI, false);
         config.packUrl = config.getString(KEY_URL);
         config.devUrl = config.getString(KEY_DEV_URL);
-        config.installerUrl = config.getString(KEY_INSTALLER_URL);
+        config.installerUrl = config.getString(KEY_INSTALLER_URL, DEFAULT_INSTALLER_URL);
         config.installerAsset = config.getString(KEY_INSTALLER_ASSET, DEFAULT_INSTALLER_ASSET);
         config.installerToken = config.getString(KEY_INSTALLER_TOKEN);
         return config;
