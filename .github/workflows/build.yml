@@ -37,7 +37,11 @@ jobs:
           # committed instead of the current sources, and a jar built on a newer local JDK
           # carries a class file version that Minecraft's Java 21 cannot load, which kills the
           # fork path for every user with UnsupportedClassVersionError.
-          if ! git diff --quiet -- src/main/resources/updater/packupdater-bootstrap.jar; then
+          # Compared by content against HEAD, not with git diff: the step above has already
+          # rebuilt the jar in the working tree, so a diff would always report a change.
+          committed=$(git show HEAD:src/main/resources/updater/packupdater-bootstrap.jar | sha256sum | cut -d' ' -f1)
+          fresh=$(sha256sum src/main/resources/updater/packupdater-bootstrap.jar | cut -d' ' -f1)
+          if [ "$committed" != "$fresh" ]; then
             echo "::error::packupdater-bootstrap.jar is out of date; run ./bootstrap/build.sh and commit the result"
             exit 1
           fi

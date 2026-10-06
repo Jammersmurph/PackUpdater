@@ -58,6 +58,11 @@ Main-Class: link.infra.packwiz.installer.bootstrap.Main
 EOF
 
 mkdir -p "$(dirname "$target")"
-jar --create --file "$target" --manifest="$out/manifest.txt" -C "$out/jar" .
+# --date pins entry timestamps so repeated builds are byte-identical. Without it CI cannot tell
+# a genuinely stale committed jar from a fresh one that merely records a different build time.
+jar --create --file "$target" \
+  --manifest="$out/manifest.txt" \
+  --date "2024-01-01T00:00:00Z" \
+  -C "$out/jar" .
 
 echo "Built $target"
