@@ -69,9 +69,16 @@ Some platforms cannot open the installer's window from a child process. Android 
 PojavLauncher, Pojav Glow·Worm, Fold Craft and Zalith supply AWT from an external jar instead of
 from the JDK, so the game has a working display but a forked JVM does not.
 
-PackUpdater detects this without naming any platform, by asking whether the child could inherit
-the AWT the parent is using. When the answer is no, or when a windowed run fails with a windowing
-error, it retries with no window against a copy of the pack index.
+PackUpdater asks a short-lived child JVM whether it can actually open a window, and uses that
+answer. When the answer is no, or when a windowed run fails with a windowing error, it retries
+with no window against a copy of the pack index.
+
+Guessing does not work here, which is why it is a real probe. `GraphicsEnvironment.isHeadless()`
+reports only whether `java.awt.headless` was set, and launchers set it to `false` while pointing
+`DISPLAY` at a display that does not exist, so it happily returns `false`. Asking the game JVM
+for its AWT toolkit's code source is no better: launchers supply AWT through `-Xbootclasspath`,
+and a bootclasspath-loaded class reports a `null` code source exactly like a stock JDK toolkit,
+so the two are indistinguishable. Only building a window exercises the thing that fails.
 
 That retry honours each optional mod's declared `default`, which passing `-g` alone would not:
 the installer's CLI path force-enables every optional mod it finds. The fallback omits optional
