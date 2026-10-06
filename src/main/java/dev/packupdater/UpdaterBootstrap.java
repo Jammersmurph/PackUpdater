@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +43,11 @@ public final class UpdaterBootstrap {
             PackUpdater.LOGGER.info("[PackUpdater] No display detected, running the installer without a GUI.");
             return false;
         }
+        String reason = preflightReason(config);
+        if (reason != null) {
+            PackUpdater.LOGGER.info("[PackUpdater] Skipping the installer window ({}).", reason);
+            return false;
+        }
         return true;
     }
 
@@ -71,7 +77,8 @@ public final class UpdaterBootstrap {
             command.add("--bootstrap-update-token");
             command.add(config.installerToken);
         }
-        if (!useGui(config)) {
+        boolean attemptGui = config.gui && !forceFallback(config);
+        if (!attemptGui) {
             command.add("-g");
         }
 
@@ -91,26 +98,165 @@ public final class UpdaterBootstrap {
         }
         PackUpdater.LOGGER.info("[PackUpdater] Bootstrapper extracted to {}", bootstrapJar);
 
+        Run first = execute(command, gameDir);
+
+        if (first.exitCode != 0 && attemptGui && canFallback(config) && GuiCapability.looksLikeGuiFailure(first.output)) {
+            PackUpdater.LOGGER.warn(
+                    "[PackUpdater] The installer's window could not be opened ({}). "
+                            + "Falling back to a silent update; optional mods will be limited to "
+                            + "those enabled by default in the pack. See the log for the full reason.",
+                    summarise(first.output));
+            runFilteredFallback(config, packUrl, gameDir, tempDir, javaBin, bootstrapJar);
+            return;
+        }
+
+        if (first.exitCode != 0) {
+            throw new IllegalStateException("Bootstrapper exited with code " + first.exitCode);
+        }
+        PackUpdater.LOGGER.info("[PackUpdater] Update complete.");
+    }
+
+    /** A finished installer run plus everything it printed, kept for failure diagnosis. */
+    private record Run(int exitCode, String output) {}
+
+    /**
+     * Runs the installer again with no window, against an index that omits optional mods the
+     * pack did not enable by default.
+     *
+     * <p>Needed because the installer's CLI path force-enables every optional mod, so simply
+     * adding {@code -g} would install the union of all of them rather than the ones a player
+     * would have kept.
+     */
+    private static void runFilteredFallback(
+            UpdaterConfig config, String packUrl, Path gameDir, Path tempDir, String javaBin, Path bootstrapJar)
+            throws Exception {
+
+        Path packDir = Files.createDirectories(tempDir.resolve("pack"));
+        OptionalModFilter.Result filtered = OptionalModFilter.build(packDir, packUrl, httpClient());
+        warnUserAboutFallback(filtered);
+
+        List<String> command = new ArrayList<>();
+        command.add(javaBin);
+        command.add("-D" + UpdaterConfig.KEY_INSTALLER_ASSET + "=" + config.installerAsset);
+        command.add("-jar");
+        command.add(bootstrapJar.toString());
+        command.add(filtered.packFile().toUri().toString());
+        if (!config.installerUrl.isEmpty()) {
+            command.add("--bootstrap-update-url");
+            command.add(config.installerUrl);
+        }
+        if (!config.installerToken.isEmpty()) {
+            command.add("--bootstrap-update-token");
+            command.add(config.installerToken);
+        }
+        command.add("-g");
+        // The pack file lives in a temp dir, so the install root has to be stated explicitly.
+        // Without this the installer would install into the temp dir instead of the instance.
+        command.add("--pack-folder");
+        command.add(gameDir.toString());
+
+        PackUpdater.LOGGER.info(
+                "[PackUpdater] Silent update against a filtered index: {} optional mods kept, {} omitted",
+                filtered.retainedOptional(), filtered.dropped());
+
+        Run run = execute(command, gameDir);
+        if (run.exitCode != 0) {
+            throw new IllegalStateException("Fallback bootstrapper exited with code " + run.exitCode);
+        }
+        PackUpdater.LOGGER.info("[PackUpdater] Update complete.");
+    }
+
+    private static Run execute(List<String> command, Path workingDir) throws IOException {
         ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true);
         // The installer resolves its output paths relative to the working directory, so this
         // has to stay the game directory rather than the temp dir.
-        builder.directory(gameDir.toFile());
-        Process process = builder.start();
+        builder.directory(workingDir.toFile());
 
+        Process process;
+        try {
+            process = builder.start();
+        } catch (Exception e) {
+            // Most likely no usable java binary, a sandbox that forbids forking, or not enough
+            // free memory for a second JVM. None of those should stop the game from starting.
+            throw new IllegalStateException(
+                    "Could not start the updater process (" + e + "). A second JVM may be blocked "
+                            + "by the launcher or unable to reserve enough memory. The game will "
+                            + "start without updating.",
+                    e);
+        }
+
+        StringBuilder captured = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 PackUpdater.LOGGER.info("[PackUpdater] {}", line);
                 updateLoadingScreen(line);
+                if (captured.length() < MAX_CAPTURE) {
+                    captured.append(line).append('\n');
+                }
+            }
+            return new Run(process.waitFor(), captured.toString());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for the updater", e);
+        }
+    }
+
+    /** Warns on the loading screen before the silent run, so the player actually sees it. */
+    private static void warnUserAboutFallback(OptionalModFilter.Result filtered) {
+        String message = filtered.dropped() > 0
+                ? String.format("Updater: silent install, %s optional mods skipped", filtered.dropped())
+                : "Updater: silent install";
+        PackUpdater.LOGGER.warn(
+                "[PackUpdater] Running without the installer window. {} optional mods that the pack "
+                        + "leaves disabled are being skipped, so those will not be installed.",
+                filtered.dropped());
+        try {
+            ImmediateWindowHandler.updateProgress(message);
+        } catch (Throwable ignored) {
+            // Progress reporting is best effort.
+        }
+    }
+
+    private static boolean forceFallback(UpdaterConfig config) {
+        return config.compat == UpdaterConfig.Compat.AUTO
+                && config.fallback == UpdaterConfig.Fallback.ALWAYS;
+    }
+
+    private static boolean canFallback(UpdaterConfig config) {
+        return config.compat == UpdaterConfig.Compat.AUTO
+                && config.fallback != UpdaterConfig.Fallback.NEVER;
+    }
+
+    /** True when this platform cannot be expected to open a window from a child JVM. */
+    private static String preflightReason(UpdaterConfig config) {
+        if (!config.gui || !canFallback(config)) {
+            return null;
+        }
+        if (forceFallback(config)) {
+            return "packupdater.fallback=always";
+        }
+        return GuiCapability.forkedGuiUnusable();
+    }
+
+    private static String summarise(String output) {
+        for (String line : output.split("\n")) {
+            String trimmed = line.trim();
+            if (!trimmed.isEmpty() && GuiCapability.looksLikeGuiFailure(trimmed)) {
+                return trimmed.length() > 200 ? trimmed.substring(0, 200) + "..." : trimmed;
             }
         }
-
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new IllegalStateException("Bootstrapper exited with code " + exitCode);
-        }
-        PackUpdater.LOGGER.info("[PackUpdater] Update complete.");
+        return "no diagnostic output";
     }
+
+    private static java.net.http.HttpClient httpClient() {
+        return java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(30))
+                .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                .build();
+    }
+
+    private static final int MAX_CAPTURE = 64 * 1024;
 
     private static void startupProgressMeter() throws ReflectiveOperationException {
         List<ProgressMeter> progressList = StartupNotificationManager.getCurrentProgress();

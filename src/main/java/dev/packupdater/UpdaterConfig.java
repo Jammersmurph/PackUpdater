@@ -35,6 +35,8 @@ public final class UpdaterConfig {
     public static final String KEY_INSTALLER_ASSET = "packupdater.installer-asset";
     public static final String KEY_INSTALLER_TOKEN = "packupdater.installer-token";
     public static final String KEY_GUI = "packupdater.gui";
+    public static final String KEY_COMPAT = "packupdater.compat";
+    public static final String KEY_FALLBACK = "packupdater.fallback";
 
     public static final String DEFAULT_INSTALLER_URL =
             "https://api.github.com/repos/packwiz/packwiz-installer/releases/latest";
@@ -78,14 +80,45 @@ public final class UpdaterConfig {
             # when there is no display, e.g. on a dedicated server.
             packupdater.gui=true
 
+            # Compatibility layer. "auto" checks whether a forked JVM could open the
+            # installer's window and falls back to a silent update when it could not, which is
+            # what makes this usable on Android launchers that supply AWT from a jar. Set to
+            # "off" for exactly the previous behaviour.
+            packupdater.compat=auto
+
+            # When to use that silent fallback. "auto" only after a confirmed failure,
+            # "never" disables it, and "always" uses it unconditionally so you can exercise
+            # the path on a desktop.
+            packupdater.fallback=auto
+
             # Skip the updater entirely.
             packupdater.skip=false
             """;
 
     private final Properties file = new Properties();
 
+    /** Whether the compatibility layer may downgrade the GUI to the filtered path. */
+    public enum Compat {
+        /** Detect an unusable GUI and fall back. Default. */
+        AUTO,
+        /** No detection and no fallback. Behaves exactly as before this feature existed. */
+        OFF
+    }
+
+    /** When the filtered, non-GUI path runs. */
+    public enum Fallback {
+        /** Only after a confirmed GUI failure, or when detection proves the GUI cannot open. */
+        AUTO,
+        /** Never fall back. */
+        NEVER,
+        /** Always skip the GUI and use the filtered path. For testing the fallback anywhere. */
+        ALWAYS
+    }
+
     public boolean skip;
     public boolean gui;
+    public Compat compat = Compat.AUTO;
+    public Fallback fallback = Fallback.AUTO;
     public String packUrl = "";
     public String devUrl = "";
     public String installerUrl = "";
@@ -123,6 +156,8 @@ public final class UpdaterConfig {
 
         config.skip = config.getBoolean(KEY_SKIP, false);
         config.gui = config.getBoolean(KEY_GUI, true);
+        config.compat = config.parseEnum(KEY_COMPAT, Compat.class, Compat.AUTO);
+        config.fallback = config.parseEnum(KEY_FALLBACK, Fallback.class, Fallback.AUTO);
         config.packUrl = config.getString(KEY_URL);
         config.devUrl = config.getString(KEY_DEV_URL);
         config.installerUrl = config.getString(KEY_INSTALLER_URL, DEFAULT_INSTALLER_URL);
@@ -177,6 +212,24 @@ public final class UpdaterConfig {
         }
         value = value.trim();
         return value.isEmpty() ? fallback : value;
+    }
+
+    private <E extends Enum<E>> E parseEnum(String key, Class<E> type, E fallback) {
+        String value = System.getProperty(key);
+        if (value == null) {
+            value = file.getProperty(key);
+        }
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Enum.valueOf(type, value.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            PackUpdater.LOGGER.warn(
+                    "[PackUpdater] Ignoring unrecognised value for {}: {} (expected one of {})",
+                    key, value.trim(), java.util.Arrays.toString(type.getEnumConstants()));
+            return fallback;
+        }
     }
 
     private boolean getBoolean(String key, boolean fallback) {

@@ -63,6 +63,27 @@ Two consequences worth knowing:
 - With the window shown you get two progress indicators: the installer's own window, and the
   Minecraft loading screen that PackUpdater drives from the installer's output.
 
+### Mobile and other restricted platforms
+
+Some platforms cannot open the installer's window from a child process. Android launchers such as
+PojavLauncher, Pojav Glow·Worm, Fold Craft and Zalith supply AWT from an external jar instead of
+from the JDK, so the game has a working display but a forked JVM does not.
+
+PackUpdater detects this without naming any platform, by asking whether the child could inherit
+the AWT the parent is using. When the answer is no, or when a windowed run fails with a windowing
+error, it retries with no window against a copy of the pack index.
+
+That retry honours each optional mod's declared `default`, which passing `-g` alone would not:
+the installer's CLI path force-enables every optional mod it finds. The fallback omits optional
+mods the pack explicitly disables, and installs the rest.
+
+If you would rather it did not do this at all:
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `packupdater.compat` | `auto` | Set to `off` for exactly the previous behaviour, with no detection and no fallback. |
+| `packupdater.fallback` | `auto` | `never` disables the retry. `always` uses it unconditionally, which is how you exercise this path on a desktop. |
+
 ### Installer releases
 
 Out of the box PackUpdater bootstraps
