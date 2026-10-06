@@ -31,6 +31,10 @@ one in as-is; the only edit you need is the pack URL, which PackUpdater cannot d
 packupdater.url=https://raw.githubusercontent.com/you/pack/main/pack.toml
 ```
 
+> On GitHub the URL must use the `raw.githubusercontent.com` host with the branch in the path. A
+> `github.com` blob link returns HTML, and the update fails with a 404 that looks like a missing
+> pack. See [Configuration](https://github.com/Jammersmurph/PackUpdater/wiki/Configuration#hosting-the-pack-on-github).
+
 Then:
 
 ```
