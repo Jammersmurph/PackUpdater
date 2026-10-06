@@ -45,62 +45,6 @@ public final class UpdaterConfig {
 
     private static final String CONFIG_RELATIVE_PATH = "config/packupdater.properties";
 
-    private static final String DEFAULT_TEMPLATE = """
-            # PackUpdater configuration.
-            # Every key here can also be set as a JVM argument, e.g. -Dpackupdater.url=<url>.
-            # JVM arguments take precedence over this file.
-
-            # URL of the pack.toml to sync against. Required - the updater does nothing
-            # without it. Example:
-            #   packupdater.url=https://example.com/pack/pack.toml
-            packupdater.url=
-
-            # URL of the pack.toml to sync against when packupdater.dev is true. When dev
-            # is true and this is set, it takes precedence over packupdater.url, so a
-            # testing branch only needs to flip the flag.
-            # packupdater.dev-url=
-
-            # Sync packupdater.dev-url instead of packupdater.url.
-            packupdater.dev=false
-
-            # GitHub "latest release" API URL for the PackWiz installer that PackUpdater
-            # bootstraps and self-updates. Defaults to the upstream PackWiz installer, so you
-            # normally do not need to touch this. Point it elsewhere only if you maintain
-            # your own build of the installer. Leave blank to disable the self-update.
-            packupdater.installer-url=https://api.github.com/repos/packwiz/packwiz-installer/releases/latest
-
-            # Release asset name to download from that release.
-            packupdater.installer-asset=packwiz-installer.jar
-
-            # Optional GitHub token, only needed for private repositories.
-            # packupdater.installer-token=
-
-            # Show the PackWiz installer's window on launch. This is what exposes the
-            # installer's optional mods list, and it blocks startup until you close it.
-            # Set to false for a silent, unattended update; it is forced off automatically
-            # when there is no display, e.g. on a dedicated server.
-            packupdater.gui=true
-
-            # Compatibility layer. "auto" checks whether a forked JVM could open the
-            # installer's window and falls back to a silent update when it could not, which is
-            # what makes this usable on Android launchers that supply AWT from a jar. Set to
-            # "off" for exactly the previous behaviour.
-            packupdater.compat=auto
-
-            # When to use that silent fallback. "auto" only after a confirmed failure,
-            # "never" disables it, and "always" uses it unconditionally so you can exercise
-            # the path on a desktop.
-            packupdater.fallback=auto
-
-            # How to launch the PackWiz installer. "auto" forks a separate JVM and falls back
-            # to installing in this process if the platform will not allow it, which is the case
-            # on Android launchers such as Pojav, where the game runs inside the launcher and a
-            # second JVM cannot be started. "fork" always forks, "direct" never does.
-            packupdater.engine=auto
-
-            # Skip the updater entirely.
-            packupdater.skip=false
-            """;
 
     private final Properties file = new Properties();
 
@@ -147,7 +91,22 @@ public final class UpdaterConfig {
     public String installerAsset = DEFAULT_INSTALLER_ASSET;
     public String installerToken = "";
 
+    /** Packaged so the file attached to a release is byte-identical to the one written on first run. */
+    private static final String DEFAULT_TEMPLATE_RESOURCE = "/default-packupdater.properties";
+
     private UpdaterConfig() {}
+
+    static String defaultTemplate() {
+        try (var in = UpdaterConfig.class.getResourceAsStream(DEFAULT_TEMPLATE_RESOURCE)) {
+            if (in != null) {
+                return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            PackUpdater.LOGGER.warn("[PackUpdater] Could not read packaged default config: {}", e.toString());
+        }
+        return "# PackUpdater configuration. See "
+                + "https://github.com/Jammersmurph/PackUpdater/wiki/Configuration\n";
+    }
 
     /** Resolves the game directory, falling back to the JVM working directory. */
     public static Path gameDirectory() {
@@ -213,7 +172,7 @@ public final class UpdaterConfig {
                 Files.createDirectories(parent);
             }
             try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-                writer.write(DEFAULT_TEMPLATE);
+                writer.write(defaultTemplate());
             }
             PackUpdater.LOGGER.info("[PackUpdater] Wrote default config to {}", path);
         } catch (IOException e) {

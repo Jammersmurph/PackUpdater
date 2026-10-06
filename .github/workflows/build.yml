@@ -125,9 +125,15 @@ jobs:
           grep -qx "hash = \"${sha}\"" packupdater.pw.toml
           grep -qx "tag = \"${tag}\"" packupdater.pw.toml
 
+          # Ship the default config alongside the other assets. It is taken straight from
+          # src/main/resources so it is the same file the mod writes on first run, and a
+          # modpack author needs nothing hand-written.
+          install -m 644 src/main/resources/default-packupdater.properties packupdater.properties
+
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes \
             packupdater.jar \
-            packupdater.pw.toml
-          echo "Published $tag (mod_version=$version) as packupdater.jar + packupdater.pw.toml"
+            packupdater.pw.toml \
+            packupdater.properties
+          echo "Published $tag (mod_version=$version): packupdater.jar, packupdater.pw.toml, packupdater.properties"

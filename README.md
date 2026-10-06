@@ -23,10 +23,9 @@ hashes. If your pack uses optional mods, players get the PackWiz installer's win
 
 Two files, nothing else:
 
-**1. `mods/packupdater.pw.toml`** — grab it from the
-[release assets](https://github.com/Jammersmurph/PackUpdater/releases) and drop it in.
-
-**2. `config/packupdater.properties`** — the one thing PackUpdater cannot discover on its own:
+**1. `mods/packupdater.pw.toml`** and **2. `config/packupdater.properties`** — both are
+attached to the [release assets](https://github.com/Jammersmurph/PackUpdater/releases). Drop each
+one in as-is; the only edit you need is the pack URL, which PackUpdater cannot discover on its own:
 
 ```properties
 packupdater.url=https://raw.githubusercontent.com/you/pack/main/pack.toml
