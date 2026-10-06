@@ -31,23 +31,22 @@ jobs:
       - name: Build mod
         run: ./gradlew build --console=plain
 
-      - name: Verify the committed bootstrap jar matches a fresh build
+      - name: Verify the bootstrap jar loads on the Java Minecraft actually ships with
         run: |
-          # Guards two ways of getting this wrong. A stale committed jar ships whatever was
-          # committed instead of the current sources, and a jar built on a newer local JDK
-          # carries a class file version that Minecraft's Java 21 cannot load, which kills the
-          # fork path for every user with UnsupportedClassVersionError.
-          # Compared by content against HEAD, not with git diff: the step above has already
-          # rebuilt the jar in the working tree, so a diff would always report a change.
-          committed=$(git show HEAD:src/main/resources/updater/packupdater-bootstrap.jar | sha256sum | cut -d' ' -f1)
-          fresh=$(sha256sum src/main/resources/updater/packupdater-bootstrap.jar | cut -d' ' -f1)
-          if [ "$committed" != "$fresh" ]; then
-            echo "::error::packupdater-bootstrap.jar is out of date; run ./bootstrap/build.sh and commit the result"
+          # Minecraft 1.21.1 runs on Java 21, which loads class files up to version 65. A jar
+          # built on a newer local JDK carries a higher version and kills the fork path for
+          # every user with UnsupportedClassVersionError, so this is checked on every build.
+          #
+          # Byte equality against the committed jar is deliberately not checked. jar's entry
+          # order follows the filesystem, so two builds of identical sources differ across
+          # machines and the comparison would fail forever. Both jobs rebuild from source
+          # anyway, so a stale committed jar cannot reach a release.
+          major=$(unzip -p src/main/resources/updater/packupdater-bootstrap.jar \
+            link/infra/packwiz/installer/bootstrap/Main.class | od -An -tu1 -j6 -N2 | awk '{print $2}')
+          if [ -z "$major" ]; then
+            echo "::error::could not read the class file version of the bootstrap jar"
             exit 1
           fi
-          major=$(od -An -tu1 -j6 -N2 \
-            <(unzip -p src/main/resources/updater/packupdater-bootstrap.jar link/infra/packwiz/installer/bootstrap/Main.class) \
-            | awk '{print $2}')
           if [ "$major" -gt 65 ]; then
             echo "::error::bootstrap jar is class file version $major, but Minecraft runs on Java 21 (65)"
             exit 1
