@@ -1,6 +1,8 @@
 package dev.packupdater;
 
+import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.loading.ImmediateWindowHandler;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.progress.ProgressMeter;
 import net.neoforged.fml.loading.progress.StartupNotificationManager;
 
@@ -98,7 +100,28 @@ public final class UpdaterBootstrap {
         }
         PackUpdater.LOGGER.info("[PackUpdater] Bootstrapper extracted to {}", bootstrapJar);
 
-        Run first = execute(command, gameDir);
+        if (config.engine == UpdaterConfig.Engine.DIRECT) {
+            runDirect(config, packUrl, gameDir);
+            return;
+        }
+
+        Run first;
+        try {
+            first = execute(command, gameDir);
+        } catch (ForkNotPermitted e) {
+            if (config.engine == UpdaterConfig.Engine.FORK) {
+                throw e;
+            }
+            // The usual cause is an app sandbox that permits using a runtime in-process but not
+            // executing one, which is how Android launchers run the game.
+            PackUpdater.LOGGER.warn(
+                    "[PackUpdater] This platform will not let PackUpdater start a second JVM ({}). "
+                            + "Installing in this process instead; the installer's window is not "
+                            + "available and optional mods will follow the pack defaults.",
+                    e.getMessage());
+            runDirect(config, packUrl, gameDir);
+            return;
+        }
 
         if (first.exitCode != 0 && attemptGui && canFallback(config) && GuiCapability.looksLikeGuiFailure(first.output)) {
             PackUpdater.LOGGER.warn(
@@ -114,6 +137,35 @@ public final class UpdaterBootstrap {
             throw new IllegalStateException("Bootstrapper exited with code " + first.exitCode);
         }
         PackUpdater.LOGGER.info("[PackUpdater] Update complete.");
+    }
+
+    /** Raised when the platform refuses to let us start the updater process at all. */
+    private static final class ForkNotPermitted extends IllegalStateException {
+        ForkNotPermitted(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /**
+     * Installs the pack inside this JVM, with no window.
+     *
+     * <p>The installer cannot simply be called here: it invokes {@link System#exit(int)} on
+     * nearly every path including success, which would end the running game, and Java 21
+     * refuses to let {@code System.exit} be trapped. So the download and verification loop is
+     * performed directly instead.
+     */
+    private static void runDirect(UpdaterConfig config, String packUrl, Path gameDir) throws IOException {
+        String side = FMLLoader.getDist() == Dist.CLIENT ? "client" : "server";
+        PackUpdater.LOGGER.info("[PackUpdater] Installing {} into {} without a child process", packUrl, gameDir);
+
+        InProcessInstaller.Result result = InProcessInstaller.sync(
+                gameDir, packUrl, side, httpClient(), (message, done, total) -> {
+                    updateLoadingScreen("(" + done + "/" + total + ") " + message);
+                });
+
+        PackUpdater.LOGGER.info(
+                "[PackUpdater] Update complete: {} downloaded, {} already current, {} removed, {} skipped",
+                result.installed(), result.validated(), result.removed(), result.skipped());
     }
 
     /** A finished installer run plus everything it printed, kept for failure diagnosis. */
@@ -176,13 +228,9 @@ public final class UpdaterBootstrap {
         try {
             process = builder.start();
         } catch (Exception e) {
-            // Most likely no usable java binary, a sandbox that forbids forking, or not enough
-            // free memory for a second JVM. None of those should stop the game from starting.
-            throw new IllegalStateException(
-                    "Could not start the updater process (" + e + "). A second JVM may be blocked "
-                            + "by the launcher or unable to reserve enough memory. The game will "
-                            + "start without updating.",
-                    e);
+            // Almost always the platform refusing to execute a second JVM. Android launchers
+            // sandbox this, and they run the game in-process so their runtime is not executable.
+            throw new ForkNotPermitted("could not execute " + command.get(0) + ": " + e, e);
         }
 
         StringBuilder captured = new StringBuilder();

@@ -36,6 +36,7 @@ public final class UpdaterConfig {
     public static final String KEY_INSTALLER_TOKEN = "packupdater.installer-token";
     public static final String KEY_GUI = "packupdater.gui";
     public static final String KEY_COMPAT = "packupdater.compat";
+    public static final String KEY_ENGINE = "packupdater.engine";
     public static final String KEY_FALLBACK = "packupdater.fallback";
 
     public static final String DEFAULT_INSTALLER_URL =
@@ -91,6 +92,12 @@ public final class UpdaterConfig {
             # the path on a desktop.
             packupdater.fallback=auto
 
+            # How to launch the PackWiz installer. "auto" forks a separate JVM and falls back
+            # to installing in this process if the platform will not allow it, which is the case
+            # on Android launchers such as Pojav, where the game runs inside the launcher and a
+            # second JVM cannot be started. "fork" always forks, "direct" never does.
+            packupdater.engine=auto
+
             # Skip the updater entirely.
             packupdater.skip=false
             """;
@@ -115,8 +122,23 @@ public final class UpdaterConfig {
         ALWAYS
     }
 
+    /**
+     * How the installer is launched. Forking is preferred because it isolates the installer's
+     * Kotlin and OkHttp from the game's, and it is the only path where the window can be shown
+     * outside this process.
+     */
+    public enum Engine {
+        /** Fork a child JVM, falling back to running in-process if that is not permitted. */
+        AUTO,
+        /** Always fork. Fails on platforms that forbid it. */
+        FORK,
+        /** Never fork. The only workable option on Android launchers. */
+        DIRECT
+    }
+
     public boolean skip;
     public boolean gui;
+    public Engine engine = Engine.AUTO;
     public Compat compat = Compat.AUTO;
     public Fallback fallback = Fallback.AUTO;
     public String packUrl = "";
@@ -156,6 +178,7 @@ public final class UpdaterConfig {
 
         config.skip = config.getBoolean(KEY_SKIP, false);
         config.gui = config.getBoolean(KEY_GUI, true);
+        config.engine = config.parseEnum(KEY_ENGINE, Engine.class, Engine.AUTO);
         config.compat = config.parseEnum(KEY_COMPAT, Compat.class, Compat.AUTO);
         config.fallback = config.parseEnum(KEY_FALLBACK, Fallback.class, Fallback.AUTO);
         config.packUrl = config.getString(KEY_URL);

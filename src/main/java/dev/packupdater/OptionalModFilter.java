@@ -203,7 +203,7 @@ public final class OptionalModFilter {
         return format.isEmpty() ? "packwiz:1.1.0" : format;
     }
 
-    private static String readIndexFile(String packToml, String fallback) {
+    static String readIndexFile(String packToml, String fallback) {
         String index = section(packToml, "index");
         if (index == null) {
             return fallback;
@@ -212,7 +212,7 @@ public final class OptionalModFilter {
         return file == null || file.isBlank() ? fallback : file;
     }
 
-    private static String value(String toml, String key) {
+    static String value(String toml, String key) {
         for (String raw : toml.split("\n")) {
             String line = raw.trim();
             if (line.startsWith(key) ) {
@@ -231,7 +231,7 @@ public final class OptionalModFilter {
     }
 
     /** Returns the body of a {@code [name]} table, or null when absent. */
-    private static String section(String toml, String name) {
+    static String section(String toml, String name) {
         String header = "[" + name + "]";
         StringBuilder body = new StringBuilder();
         boolean in = false;
@@ -267,7 +267,7 @@ public final class OptionalModFilter {
     }
 
     /** A {@code [[files]]} entry and its offsets in the original text. */
-    private record Block(int start, int end, String body) {
+    record Block(int start, int end, String body) {
         String file() {
             return value(body, "file");
         }
@@ -277,7 +277,7 @@ public final class OptionalModFilter {
         }
     }
 
-    private static List<Block> parseIndex(String indexToml) {
+    static List<Block> parseIndex(String indexToml) {
         List<int[]> spans = new ArrayList<>();
         List<Integer> starts = new ArrayList<>();
         int cursor = 0;

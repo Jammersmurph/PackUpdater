@@ -91,6 +91,26 @@ If you would rather it did not do this at all:
 | `packupdater.compat` | `auto` | Set to `off` for exactly the previous behaviour, with no detection and no fallback. |
 | `packupdater.fallback` | `auto` | `never` disables the retry. `always` uses it unconditionally, which is how you exercise this path on a desktop. |
 
+### Launchers that forbid a second JVM
+
+Some platforms run Minecraft inside the launcher's own process and sandbox the app, so a second
+JVM cannot be started at all. On Android launchers such as PojavLauncher, Pojav Glow·Worm, Fold
+Craft and Zalith, the game's `java.home` points at a runtime the app may use but may not execute,
+and starting one fails with `Exec failed, error: 13 (Permission denied)`.
+
+When that happens PackUpdater installs the pack inside the game process instead. It cannot simply
+call the PackWiz installer there, because the installer invokes `System.exit` on nearly every
+path, including success, which would end the running game, and Java 21 does not allow `System.exit`
+to be trapped. So PackUpdater performs the download and verification loop itself, honouring the
+same optional-mod rules, so the same pack installs the same files whichever engine runs.
+
+What differs on that path: there is no installer window, so optional mods cannot be chosen
+interactively and follow the pack's declared defaults instead.
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `packupdater.engine` | `auto` | `auto` forks and falls back to installing in-process when it cannot. `fork` always forks, `direct` never does. |
+
 ### Installer releases
 
 Out of the box PackUpdater bootstraps

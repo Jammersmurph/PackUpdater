@@ -37,7 +37,10 @@ mkdir -p "$out/classes" "$out/jar"
 
 echo "Compiling bootstrap"
 find "$here/src" -name '*.java' > "$out/sources.txt"
-javac -nowarn -cp "$commons_cli:$minimal_json" -d "$out/classes" "@$out/sources.txt"
+# Pinned deliberately. Minecraft 1.21.1 runs on Java 21, so this jar has to load there. Building
+# it with a newer local JDK silently emits a higher class file version and the whole fork path
+# dies at startup with UnsupportedClassVersionError.
+javac --release 21 -nowarn -cp "$commons_cli:$minimal_json" -d "$out/classes" "@$out/sources.txt"
 
 echo "Assembling jar"
 for dep in "$commons_cli" "$minimal_json"; do

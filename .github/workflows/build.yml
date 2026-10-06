@@ -31,13 +31,24 @@ jobs:
       - name: Build mod
         run: ./gradlew build --console=plain
 
-      - name: Verify no stale bootstrap jar was committed
-        if: github.event_name == 'pull_request'
+      - name: Verify the committed bootstrap jar matches a fresh build
         run: |
+          # Guards two ways of getting this wrong. A stale committed jar ships whatever was
+          # committed instead of the current sources, and a jar built on a newer local JDK
+          # carries a class file version that Minecraft's Java 21 cannot load, which kills the
+          # fork path for every user with UnsupportedClassVersionError.
           if ! git diff --quiet -- src/main/resources/updater/packupdater-bootstrap.jar; then
             echo "::error::packupdater-bootstrap.jar is out of date; run ./bootstrap/build.sh and commit the result"
             exit 1
           fi
+          major=$(od -An -tu1 -j6 -N2 \
+            <(unzip -p src/main/resources/updater/packupdater-bootstrap.jar link/infra/packwiz/installer/bootstrap/Main.class) \
+            | awk '{print $2}')
+          if [ "$major" -gt 65 ]; then
+            echo "::error::bootstrap jar is class file version $major, but Minecraft runs on Java 21 (65)"
+            exit 1
+          fi
+          echo "bootstrap jar is class file version $major"
 
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
