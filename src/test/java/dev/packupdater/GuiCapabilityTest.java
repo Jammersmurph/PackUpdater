@@ -2,6 +2,8 @@ package dev.packupdater;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -72,4 +74,42 @@ class GuiCapabilityTest {
         assertTrue(GuiCapability.looksLikeGuiFailure("JAVA.AWT.HEADLESSEXCEPTION"));
     }
 
+    @Test
+    void probeRunsWithoutBeingOnTheClasspath() throws Exception {
+        // Regression. NeoForge loads mods in a module layer, so the probe's classes are not on
+        // java.class.path and the previous implementation always failed to start it. That
+        // silently removed the installer's window from every desktop user.
+        //
+        // Reproduces the real condition: unpack the probe into a directory and run it from a
+        // classpath that contains nothing of ours except that directory.
+        Path unpacked = java.nio.file.Files.createTempDirectory("probe-extract-test");
+        Path classFile = unpacked.resolve(GuiProbe.class.getName().replace('.', '/') + ".class");
+        java.nio.file.Files.createDirectories(classFile.getParent());
+        try (var in = GuiCapability.class.getResourceAsStream(
+                "/" + GuiProbe.class.getName().replace('.', '/') + ".class")) {
+            assertTrue(in != null, "the probe class must be readable as a classloader resource");
+            java.nio.file.Files.write(classFile, in.readAllBytes());
+        }
+
+        String javaBin = java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString();
+        Process p = new ProcessBuilder(javaBin, "-cp", unpacked.toString(), GuiProbe.class.getName())
+                .redirectErrorStream(true)
+                .start();
+        String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(0, p.waitFor(), "the probe should exit cleanly");
+
+        assertTrue(
+                output.trim().startsWith(GuiProbe.OK) || output.trim().startsWith(GuiProbe.FAIL_PREFIX),
+                "the probe must answer when run from an isolated directory, got: " + output.trim());
+    }
+
+    @Test
+    void anInconclusiveProbeLeavesTheWindowAlone() {
+        // Fail open. A probe that cannot answer must never be able to take a working window
+        // away; it may only withhold one when it positively cannot open it.
+        assertTrue(UpdaterBootstrap.shouldUseGui(true, false, null, false, false),
+                "no probe reason means the window is used");
+        assertFalse(UpdaterBootstrap.shouldUseGui(true, false, "window probe failed: java.awt.AWTError", false, false),
+                "a definite failure withholds the window");
+    }
 }
