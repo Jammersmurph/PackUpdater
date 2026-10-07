@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -166,5 +167,36 @@ class InProcessInstallerTest {
             out.append(Character.forDigit((b >> 4) & 0xf, 16)).append(Character.forDigit(b & 0xf, 16));
         }
         return out.toString();
+    }
+
+    @Test
+    void gameDirectoryWithADotSegmentStillResolvesFiles() {
+        // Regression. Android launchers hand over a game directory containing a "." segment,
+        // e.g. ".../files/./instances/CreateVC-Dev". Comparing a normalised child path against
+        // that base makes startsWith() false, so every file in the pack was silently refused:
+        // the device reported "0 downloaded, 0 validated, 302 skipped" and nothing failed loudly.
+        String dotted = "/storage/emulated/0/app/files/./instances/CreateVC-Dev";
+        Path asGiven = Paths.get(dotted);
+        assertFalse(asGiven.toString().equals(asGiven.normalize().toString()),
+                "precondition: the dotted form is not already normalised");
+
+        // What the bug did: normalise the child, compare against the un-normalised base.
+        Path child = asGiven.resolve("mods/x.jar").normalize();
+        assertFalse(child.startsWith(asGiven),
+                "this is the failure: a normalised child does not start with a dotted base");
+
+        // What the fix does: normalise the base first.
+        Path base = asGiven.toAbsolutePath().normalize();
+        assertTrue(base.resolve("mods/x.jar").startsWith(base),
+                "a child must start with its base once the base is normalised");
+    }
+
+    @Test
+    void normalisingTheBaseStillRejectsTraversal() {
+        Path base = Paths.get("/storage/emulated/0/app/files/./instances/CreateVC-Dev")
+                .toAbsolutePath()
+                .normalize();
+        assertFalse(base.resolve("../../etc/passwd").normalize().startsWith(base),
+                "traversal must still be refused after normalising");
     }
 }

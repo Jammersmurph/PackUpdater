@@ -54,6 +54,11 @@ public final class InProcessInstaller {
      */
     public static Result sync(Path gameDir, String packUrl, String side, HttpClient client, Progress progress)
             throws IOException {
+        // Normalised once, up front, and it has to be. Some launchers hand us a game directory
+        // containing a "." segment, and comparing a normalised child against a non-normalised
+        // parent makes startsWith() false, which silently refused every file in the pack.
+        gameDir = gameDir.toAbsolutePath().normalize();
+
         String packToml = OptionalModFilter.fetch(client, packUrl);
         String indexFile = OptionalModFilter.readIndexFile(packToml, "index.toml");
         URI packUri = URI.create(packUrl);
@@ -177,8 +182,9 @@ public final class InProcessInstaller {
     /** Resolves a pack-relative path, refusing anything that escapes the game directory. */
     private static Path safe(Path gameDir, String relative) {
         try {
-            Path resolved = gameDir.resolve(relative).normalize();
-            return resolved.startsWith(gameDir) ? resolved : null;
+            Path base = gameDir.toAbsolutePath().normalize();
+            Path resolved = base.resolve(relative).normalize();
+            return resolved.startsWith(base) ? resolved : null;
         } catch (RuntimeException e) {
             return null;
         }
