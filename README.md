@@ -35,6 +35,18 @@ packupdater.url=https://raw.githubusercontent.com/you/pack/main/pack.toml
 > `github.com` blob link returns HTML, and the update fails with a 404 that looks like a missing
 > pack. See [Configuration](https://github.com/Jammersmurph/PackUpdater/wiki/Configuration#hosting-the-pack-on-github).
 
+**Optional mods on Android.** Restricted platforms such as Android launchers get no optional mods at
+all, because there is no window there to decline them and an optional mod is often desktop-only. A
+pack author opts one in, in that mod's own metadata:
+
+```toml
+[option]
+optional = true
+packupdater-allow-restricted = true
+```
+
+Desktop is unaffected — the installer's window still appears and the player chooses.
+
 Then:
 
 ```
