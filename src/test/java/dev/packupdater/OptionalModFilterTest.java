@@ -126,4 +126,45 @@ class OptionalModFilterTest {
                 """;
         assertFalse(OptionalModFilter.isOptedOut(requiredViaOption));
     }
+
+    private static final String ALLOWED_ON_RESTRICTED = """
+            name = "Mobile Friendly"
+            filename = "mobile.zip"
+            side = "both"
+
+            [download]
+            url = "https://example.com/mobile.zip"
+            hash-format = "sha256"
+            hash = "abcd"
+
+            [option]
+            optional = true
+            default = true
+            description = "Runs anywhere."
+            packupdater-allow-restricted = true
+            """;
+
+    @Test
+    void restrictedPlatformsDropEveryOptionalModByDefault() {
+        // Even one enabled by default is dropped: on a phone there is no window in which a
+        // player could have declined it, so "default = true" says nothing about whether it runs.
+        assertTrue(OptionalModFilter.isOptedOutRestricted(DEFAULT_ON),
+                "an optional mod must not be installed on a restricted platform unless allowed");
+        assertTrue(OptionalModFilter.isOptedOutRestricted(DEFAULT_OFF));
+        assertTrue(OptionalModFilter.isOptedOutRestricted(OPTIONAL_NO_DEFAULT));
+    }
+
+    @Test
+    void restrictedPlatformsKeepExplicitlyAllowedOptionalMods() {
+        assertFalse(OptionalModFilter.isOptedOutRestricted(ALLOWED_ON_RESTRICTED),
+                "a mod marked packupdater-allow-restricted must still be installed");
+        assertTrue(OptionalModFilter.isAllowedOnRestricted(ALLOWED_ON_RESTRICTED));
+        assertFalse(OptionalModFilter.isAllowedOnRestricted(DEFAULT_ON));
+    }
+
+    @Test
+    void restrictedPlatformsNeverDropRequiredMods() {
+        assertFalse(OptionalModFilter.isOptedOutRestricted(NO_OPTION),
+                "a mod with no [option] block is required and must always be installed");
+    }
 }

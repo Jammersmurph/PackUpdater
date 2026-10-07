@@ -38,19 +38,33 @@ public final class UpdaterBootstrap {
      * trying, so fall back to the non-GUI path there regardless of configuration.
      */
     private static boolean useGui(UpdaterConfig config) {
-        if (!config.gui) {
+        boolean headless = java.awt.GraphicsEnvironment.isHeadless();
+        String reason = headless ? "no display" : preflightReason(config);
+        boolean use = shouldUseGui(config.gui, headless, reason, forceFallback(config));
+        if (!use && reason != null) {
+            PackUpdater.LOGGER.info("[PackUpdater] Running the installer without a window ({}).", reason);
+        }
+        return use;
+    }
+
+    /**
+     * Whether the installer should be allowed to open a window.
+     *
+     * <p>Split out as a pure function so the whole matrix can be tested, because getting this
+     * wrong is invisible in the common case: the installer's own entry point also falls back to
+     * a non-GUI handler when it detects a headless JVM, so a missing {@code -g} still mostly
+     * works, just noisily, and only shows up as a HeadlessException on a background thread.
+     *
+     * @param configuredGui  the {@code packupdater.gui} setting
+     * @param headless       whether this JVM can open a window at all
+     * @param probeReason    why a forked JVM could not open one, or null if it could
+     * @param forcedFallback whether the fallback is being forced by configuration
+     */
+    public static boolean shouldUseGui(boolean configuredGui, boolean headless, String probeReason, boolean forcedFallback) {
+        if (!configuredGui || forcedFallback) {
             return false;
         }
-        if (java.awt.GraphicsEnvironment.isHeadless()) {
-            PackUpdater.LOGGER.info("[PackUpdater] No display detected, running the installer without a GUI.");
-            return false;
-        }
-        String reason = preflightReason(config);
-        if (reason != null) {
-            PackUpdater.LOGGER.info("[PackUpdater] Skipping the installer window ({}).", reason);
-            return false;
-        }
-        return true;
+        return !headless && probeReason == null;
     }
 
     public static void runUpdate(UpdaterConfig config, String packUrl) throws Exception {
@@ -79,7 +93,10 @@ public final class UpdaterBootstrap {
             command.add("--bootstrap-update-token");
             command.add(config.installerToken);
         }
-        boolean attemptGui = config.gui && !forceFallback(config);
+        // This is the decision the whole compatibility layer exists to make, so it has to be
+        // the one that adds -g. Computing the answer and then passing config.gui instead is how
+        // the headless and probe checks became dead code in the first place.
+        boolean attemptGui = useGui(config);
         if (!attemptGui) {
             command.add("-g");
         }

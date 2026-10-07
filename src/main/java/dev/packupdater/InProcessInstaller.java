@@ -153,7 +153,10 @@ public final class InProcessInstaller {
             PackUpdater.LOGGER.warn("[PackUpdater] Skipping unreadable metadata {}: {}", indexedPath, e.toString());
             return null;
         }
-        if (OptionalModFilter.isOptedOut(meta)) {
+        // Restricted platforms install no optional mods unless the pack author allowed this one.
+        // Installing them here would put desktop-only mods on a phone, since there is no window
+        // in which a player could have declined them.
+        if (OptionalModFilter.isOptedOutRestricted(meta)) {
             return new Entry(indexedRelative, null, null, null, true);
         }
 
@@ -170,8 +173,17 @@ public final class InProcessInstaller {
 
         String url = OptionalModFilter.value(OptionalModFilter.section(meta, "download"), "url");
         if (url == null || url.isBlank()) {
-            // Metadata without a download URL, such as a local file shipped in the pack, is
-            // already present by definition.
+            // A required mod with no direct URL is resolved by the real installer through a
+            // platform API, CurseForge or Modrinth. This engine does not call those, so say so
+            // rather than leaving the player to wonder why a mod is missing.
+            String mode = OptionalModFilter.value(OptionalModFilter.section(meta, "download"), "mode");
+            PackUpdater.LOGGER.warn(
+                    "[PackUpdater] Cannot install {} without a child process: its metadata has no "
+                            + "download URL{} ({}). Use packupdater.engine=fork on a platform that "
+                            + "can start a second JVM, or host the file directly.",
+                    indexedPath,
+                    mode == null || mode.isBlank() ? "" : " and mode=" + mode,
+                    OptionalModFilter.value(meta, "name"));
             return new Entry(target, null, null, null, true);
         }
         String hash = OptionalModFilter.value(OptionalModFilter.section(meta, "download"), "hash");

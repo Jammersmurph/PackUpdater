@@ -27,6 +27,17 @@ import java.util.Locale;
  * by default are kept, and since the installer then accepts all remaining optional mods, the
  * installed set matches what a player would have chosen in the window.
  *
+ * <p>On a restricted platform the rule is stricter: no optional mods at all unless the pack
+ * author says otherwise, because an optional mod is often desktop-only, needs a real GPU, or
+ * simply does not run on Android. A mod opts back in with a marker in its own metadata:
+ *
+ * <pre>{@code [option]
+ * optional = true
+ * packupdater-allow-restricted = true}</pre>
+ *
+ * PackWiz ignores unknown keys in a mod file, so the marker travels with the mod and survives
+ * {@code packwiz refresh}, and no second list has to be maintained.
+ *
  * <p>The index is filtered textually rather than parsed and re-serialised. Every retained block
  * is copied through byte for byte, so comments, key order and formatting survive and there is
  * no way for a round trip to alter a pack we do not fully model.
@@ -38,7 +49,20 @@ public final class OptionalModFilter {
     /** Outcome of building the filtered pack. */
     public record Result(Path packFile, int dropped, int retainedOptional) {}
 
+    /** Which optional-mod rule applies when no window is available. */
+    public enum NoWindowRule {
+        /** Honour the pack's declared defaults. Used where a display exists but is unused. */
+        DECLARED_DEFAULTS,
+        /** Install no optional mods unless explicitly allowed. Used on restricted platforms. */
+        RESTRICTED
+    }
+
     public static Result build(Path tempDir, String packUrl, HttpClient client) throws IOException {
+        return build(tempDir, packUrl, client, NoWindowRule.DECLARED_DEFAULTS);
+    }
+
+    public static Result build(
+            Path tempDir, String packUrl, HttpClient client, NoWindowRule rule) throws IOException {
         String packToml = fetch(client, packUrl);
         String indexFile = readIndexFile(packToml, "index.toml");
 
@@ -54,7 +78,7 @@ public final class OptionalModFilter {
         filtered.append(indexToml, 0, blocks.isEmpty() ? indexToml.length() : blocks.get(0).start());
 
         for (Block block : blocks) {
-            if (block.isMetafile() && isOptedOut(client, indexBase, block)) {
+            if (block.isMetafile() && isOptedOut(client, indexBase, block, rule)) {
                 continue;
             }
             if (block.isMetafile()) {
@@ -141,7 +165,7 @@ public final class OptionalModFilter {
         }
     }
 
-    private static boolean isOptedOut(HttpClient client, URI indexBase, Block block) {
+    private static boolean isOptedOut(HttpClient client, URI indexBase, Block block, NoWindowRule rule) {
         String url;
         try {
             url = indexBase.resolve(block.file()).toString();
@@ -150,7 +174,8 @@ public final class OptionalModFilter {
             return false;
         }
         try {
-            return isOptedOut(fetch(client, url));
+            String meta = fetch(client, url);
+            return rule == NoWindowRule.RESTRICTED ? isOptedOutRestricted(meta) : isOptedOut(meta);
         } catch (IOException | RuntimeException e) {
             // Cannot read the metadata, so we do not know the author's intent. Keep it and let
             // the installer decide; dropping files we did not understand would be worse.
@@ -158,10 +183,43 @@ public final class OptionalModFilter {
         }
     }
 
+    /** Key a pack author adds to a mod's {@code [option]} block to allow it on restricted platforms. */
+    public static final String ALLOW_RESTRICTED_KEY = "packupdater-allow-restricted";
+
+    /** Whether a mod is optional at all. Everything without an {@code [option]} block is required. */
+    static boolean isOptional(String metafileToml) {
+        String optionBlock = section(metafileToml, "option");
+        return optionBlock != null && "true".equals(value(optionBlock, "optional"));
+    }
+
+    /** Whether the pack author explicitly allowed this mod on restricted platforms. */
+    static boolean isAllowedOnRestricted(String metafileToml) {
+        String optionBlock = section(metafileToml, "option");
+        return optionBlock != null && "true".equals(value(optionBlock, ALLOW_RESTRICTED_KEY));
+    }
+
     /**
-     * True only for an explicit {@code default = false}. An optional mod with no {@code default}
-     * key is left in, because the PackWiz spec leaves that case undefined and installing is the
-     * less surprising default.
+     * Whether to drop this entry when installing on a restricted platform, where there is no
+     * window to make the choice.
+     *
+     * <p>Everything optional is dropped unless the pack author opted it in. Defaulting to
+     * "install all optional mods" here would put desktop-only mods on a phone, which is the
+     * failure this rule exists to prevent.
+     */
+    static boolean isOptedOutRestricted(String metafileToml) {
+        if (!isOptional(metafileToml)) {
+            return false;
+        }
+        return !isAllowedOnRestricted(metafileToml);
+    }
+
+    /**
+     * Whether to drop this entry when the installer runs with no window on a platform that does
+     * have one, such as a dedicated server or CI.
+     *
+     * <p>Here the pack's declared defaults are honoured: an optional mod enabled by default is
+     * kept, one explicitly disabled by default is dropped. That matches what the windowed path
+     * would have installed for a player who accepted the defaults.
      */
     static boolean isOptedOut(String metafileToml) {
         String optionBlock = section(metafileToml, "option");
