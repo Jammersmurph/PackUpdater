@@ -47,6 +47,10 @@ packupdater-allow-restricted = true
 
 Desktop is unaffected — the installer's window still appears and the player chooses.
 
+**Dedicated servers.** Set `packupdater.server-side=true` in the server's config. It changes
+nothing about how the update runs; it only tells the installer to install server-side mods and to
+skip the window, since a server has neither.
+
 Then:
 
 ```

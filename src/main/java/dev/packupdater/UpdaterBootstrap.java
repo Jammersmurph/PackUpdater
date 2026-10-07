@@ -40,7 +40,7 @@ public final class UpdaterBootstrap {
     private static boolean useGui(UpdaterConfig config) {
         boolean headless = java.awt.GraphicsEnvironment.isHeadless();
         String reason = headless ? "no display" : preflightReason(config);
-        boolean use = shouldUseGui(config.gui, headless, reason, forceFallback(config));
+        boolean use = shouldUseGui(config.gui, headless, reason, forceFallback(config), config.serverSide);
         if (!use && reason != null) {
             PackUpdater.LOGGER.info("[PackUpdater] Running the installer without a window ({}).", reason);
         }
@@ -59,9 +59,11 @@ public final class UpdaterBootstrap {
      * @param headless       whether this JVM can open a window at all
      * @param probeReason    why a forked JVM could not open one, or null if it could
      * @param forcedFallback whether the fallback is being forced by configuration
+     * @param serverSide     whether this instance is a dedicated server, which has no window
      */
-    public static boolean shouldUseGui(boolean configuredGui, boolean headless, String probeReason, boolean forcedFallback) {
-        if (!configuredGui || forcedFallback) {
+    public static boolean shouldUseGui(
+            boolean configuredGui, boolean headless, String probeReason, boolean forcedFallback, boolean serverSide) {
+        if (!configuredGui || forcedFallback || serverSide) {
             return false;
         }
         return !headless && probeReason == null;
@@ -99,6 +101,11 @@ public final class UpdaterBootstrap {
         boolean attemptGui = useGui(config);
         if (!attemptGui) {
             command.add("-g");
+        }
+        if (config.serverSide) {
+            // Instructs the installer to install server-side mods rather than client ones.
+            command.add("-s");
+            command.add("server");
         }
 
         try {
@@ -219,6 +226,10 @@ public final class UpdaterBootstrap {
             command.add(config.installerToken);
         }
         command.add("-g");
+        if (config.serverSide) {
+            command.add("-s");
+            command.add("server");
+        }
         // The pack file lives in a temp dir, so the install root has to be stated explicitly.
         // Without this the installer would install into the temp dir instead of the instance.
         command.add("--pack-folder");

@@ -16,7 +16,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GuiDecisionTest {
 
     private static boolean gui(boolean configured, boolean headless, String probeReason, boolean forced) {
-        return UpdaterBootstrap.shouldUseGui(configured, headless, probeReason, forced);
+        return UpdaterBootstrap.shouldUseGui(configured, headless, probeReason, forced, false);
+    }
+
+    private static boolean gui(
+            boolean configured, boolean headless, String probeReason, boolean forced, boolean serverSide) {
+        return UpdaterBootstrap.shouldUseGui(configured, headless, probeReason, forced, serverSide);
     }
 
     @Test
@@ -66,5 +71,13 @@ class GuiDecisionTest {
                 }
             }
         }
+    }
+
+    @Test
+    void aDedicatedServerNeverGetsAWindow() {
+        assertFalse(gui(true, false, null, false, true),
+                "packupdater.server-side=true must skip the window even on a machine with a display");
+        assertFalse(gui(true, false, null, true, true), "and it must win over a forced fallback too");
+        assertTrue(gui(true, false, null, false, false), "but a client instance is unaffected");
     }
 }

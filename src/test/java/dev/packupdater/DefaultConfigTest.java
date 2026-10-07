@@ -59,6 +59,7 @@ class DefaultConfigTest {
             UpdaterConfig.KEY_COMPAT,
             UpdaterConfig.KEY_FALLBACK,
             UpdaterConfig.KEY_ENGINE,
+            UpdaterConfig.KEY_SERVER_SIDE,
         }) {
             assertTrue(text.contains(key), "the default config must mention " + key);
         }

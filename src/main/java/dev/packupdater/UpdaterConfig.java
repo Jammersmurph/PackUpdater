@@ -37,6 +37,7 @@ public final class UpdaterConfig {
     public static final String KEY_GUI = "packupdater.gui";
     public static final String KEY_COMPAT = "packupdater.compat";
     public static final String KEY_ENGINE = "packupdater.engine";
+    public static final String KEY_SERVER_SIDE = "packupdater.server-side";
     public static final String KEY_FALLBACK = "packupdater.fallback";
 
     public static final String DEFAULT_INSTALLER_URL =
@@ -82,6 +83,7 @@ public final class UpdaterConfig {
 
     public boolean skip;
     public boolean gui;
+    public boolean serverSide;
     public Engine engine = Engine.AUTO;
     public Compat compat = Compat.AUTO;
     public Fallback fallback = Fallback.AUTO;
@@ -137,6 +139,7 @@ public final class UpdaterConfig {
 
         config.skip = config.getBoolean(KEY_SKIP, false);
         config.gui = config.getBoolean(KEY_GUI, true);
+        config.serverSide = config.getBoolean(KEY_SERVER_SIDE, false);
         config.engine = config.parseEnum(KEY_ENGINE, Engine.class, Engine.AUTO);
         config.compat = config.parseEnum(KEY_COMPAT, Compat.class, Compat.AUTO);
         config.fallback = config.parseEnum(KEY_FALLBACK, Fallback.class, Fallback.AUTO);
