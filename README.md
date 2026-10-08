@@ -6,7 +6,7 @@
 
 Configured through a file in the instance, so players never need JVM arguments.
 
-[Releases](https://github.com/Jammersmurph/PackUpdater/releases) · [Wiki](https://github.com/Jammersmurph/PackUpdater/wiki) · [Report an issue](https://github.com/Jammersmurph/PackUpdater/issues) · [PackWiz](https://packwiz.infra.link)
+![GitHub Release](https://img.shields.io/github/v/release/Jammersmurph/PackUpdater) · [Wiki](https://github.com/Jammersmurph/PackUpdater/wiki) · [Report an issue](https://github.com/Jammersmurph/PackUpdater/issues) · [PackWiz](https://packwiz.infra.link) 
 
 </div>
 
