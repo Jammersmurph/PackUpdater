@@ -1,14 +1,14 @@
 <div align="center">
 
+[![YouTube video](https://img.youtube.com/vi/K5IWLnmVp1Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=K5IWLnmVp1Y&t=796)  
+
 # PackUpdater
 
 **A NeoForge mod that updates a PackWiz modpack before Minecraft starts.**
 
 Configured through a file in the instance, so players never need JVM arguments.
 
-![GitHub Release](https://img.shields.io/github/v/release/Jammersmurph/PackUpdater) · [Wiki](https://github.com/Jammersmurph/PackUpdater/wiki) · [Report an issue](https://github.com/Jammersmurph/PackUpdater/issues) · [PackWiz](https://packwiz.infra.link) 
-
-[![YouTube video](https://img.youtube.com/vi/K5IWLnmVp1Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=K5IWLnmVp1Y&t=796)   
+![GitHub Release](https://img.shields.io/github/v/release/Jammersmurph/PackUpdater) · [Wiki](https://github.com/Jammersmurph/PackUpdater/wiki) · [Report an issue](https://github.com/Jammersmurph/PackUpdater/issues) · [PackWiz](https://packwiz.infra.link)  
 
 </div>
 
