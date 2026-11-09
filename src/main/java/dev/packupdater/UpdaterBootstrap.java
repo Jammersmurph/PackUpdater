@@ -38,13 +38,48 @@ public final class UpdaterBootstrap {
      * trying, so fall back to the non-GUI path there regardless of configuration.
      */
     private static boolean useGui(UpdaterConfig config) {
-        boolean headless = java.awt.GraphicsEnvironment.isHeadless();
-        String reason = headless ? "no display" : preflightReason(config);
-        boolean use = shouldUseGui(config.gui, headless, reason, forceFallback(config), config.serverSide);
+        boolean jvmHeadless = java.awt.GraphicsEnvironment.isHeadless();
+
+        // The probe only runs when the compatibility layer is allowed to use it; compat=off is
+        // the explicit "behave as before this feature existed" escape hatch.
+        boolean probeEnabled = canFallback(config);
+        boolean probeApplicable = config.gui && !config.serverSide && probeEnabled;
+        String probeReason = probeApplicable ? preflightReason(config) : null;
+
+        boolean headless = effectiveHeadless(jvmHeadless, config.gui, config.serverSide, probeEnabled, probeReason);
+        String reason = probeReason != null ? probeReason : (headless ? "no display" : null);
+        boolean use = shouldUseGui(config.gui, headless, probeReason, forceFallback(config), config.serverSide);
         if (!use && reason != null) {
             PackUpdater.LOGGER.info("[PackUpdater] Running the installer without a window ({}).", reason);
         }
         return use;
+    }
+
+    /**
+     * Whether to treat this session as headless for the installer's window decision.
+     *
+     * <p>{@link java.awt.GraphicsEnvironment#isHeadless()} answers for <em>this</em> JVM, but the
+     * installer runs in a forked JVM. A mod that installs an early-window bootstrapper (Rinku
+     * does this) sets {@code java.awt.headless=true} in the game JVM even on a desktop, so the
+     * parent's flag says nothing about whether the child can open a window. When the compatibility
+     * probe is enabled it is the authority: it starts a real child JVM and asks it to open a
+     * window, which is exactly the question that matters.
+     *
+     * <p>Without the probe - {@code packupdater.compat=off}, {@code packupdater.gui=false}, or a
+     * dedicated server - the parent's flag is all there is, and behavior stays as it was.
+     *
+     * @param jvmHeadless  whether this JVM reports itself as headless
+     * @param gui          the {@code packupdater.gui} setting
+     * @param serverSide   whether this instance is a dedicated server, which has no window
+     * @param probeEnabled whether the compatibility layer is allowed to probe at all
+     * @param probeReason  why a forked JVM could not open a window, or null if it could
+     */
+    static boolean effectiveHeadless(
+            boolean jvmHeadless, boolean gui, boolean serverSide, boolean probeEnabled, String probeReason) {
+        if (gui && !serverSide && probeEnabled) {
+            return probeReason != null;
+        }
+        return jvmHeadless;
     }
 
     /**
@@ -77,6 +112,16 @@ public final class UpdaterBootstrap {
 
         List<String> command = new ArrayList<>();
         command.add(javaBin);
+        // This is the decision the whole compatibility layer exists to make, so it has to be
+        // the one that adds -g. Computing the answer and then passing config.gui instead is how
+        // the headless and probe checks became dead code in the first place.
+        boolean attemptGui = useGui(config);
+        if (attemptGui) {
+            // The child inherits the environment but not this JVM's system properties. Another
+            // mod (Rinku) or a launcher can force java.awt.headless=true here while a window is
+            // perfectly usable in a fresh JVM, so state the intent explicitly for the installer.
+            command.add("-Djava.awt.headless=false");
+        }
         // Must come before -jar: the JVM consumes these, so they never reach the installer's
         // own argument parser, which only accepts a fixed set of bootstrap-* options.
         command.add("-D" + UpdaterConfig.KEY_INSTALLER_ASSET + "=" + config.installerAsset);
@@ -98,7 +143,6 @@ public final class UpdaterBootstrap {
         // This is the decision the whole compatibility layer exists to make, so it has to be
         // the one that adds -g. Computing the answer and then passing config.gui instead is how
         // the headless and probe checks became dead code in the first place.
-        boolean attemptGui = useGui(config);
         if (!attemptGui) {
             command.add("-g");
         }

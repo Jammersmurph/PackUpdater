@@ -83,6 +83,10 @@ public final class GuiCapability {
 
         List<String> command = new ArrayList<>();
         command.add(javaBin);
+        // Mirror the installer fork, which is also started with this property. A launcher's
+        // JAVA_TOOL_OPTIONS (or a stale value in this environment) must not make the probe judge
+        // a more restricted JVM than the one that will actually host the installer.
+        command.add("-Djava.awt.headless=false");
         command.add("-cp");
         command.add(probeDir.toString());
         command.add(GuiProbe.class.getName());

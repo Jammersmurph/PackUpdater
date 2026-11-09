@@ -37,6 +37,49 @@ class GuiDecisionTest {
     }
 
     @Test
+    void aModForcingHeadlessDoesNotHideAWorkingWindow() {
+        // Rinku installs a NeoForge early-window bootstrapper that sets java.awt.headless=true
+        // in the game JVM. The installer runs in a forked JVM, and the probe proves that child
+        // can open a window, so the parent's flag must not veto it.
+        boolean headless = UpdaterBootstrap.effectiveHeadless(true, true, false, true, null);
+        assertFalse(headless, "a successful probe must override the parent's headless flag");
+        assertTrue(
+                UpdaterBootstrap.shouldUseGui(true, headless, null, false, false),
+                "the installer window must survive a mod forcing the parent JVM headless");
+    }
+
+    @Test
+    void aModForcingHeadlessStillHonoursAProbeFailure() {
+        // The probe stays authoritative in both directions: a forced headless flag must not
+        // turn a genuinely windowless session into a failed window attempt.
+        String reason = "window probe failed: java.awt.AWTError Can't connect to X11";
+        boolean headless = UpdaterBootstrap.effectiveHeadless(true, true, false, true, reason);
+        assertTrue(headless, "a failed probe must keep the session headless");
+        assertFalse(UpdaterBootstrap.shouldUseGui(true, headless, reason, false, false));
+    }
+
+    @Test
+    void compatOffKeepsTheOldHeadlessBehaviour() {
+        // packupdater.compat=off means no probe and no compatibility behavior: the parent's
+        // flag decides exactly as it did before the probe existed.
+        assertTrue(UpdaterBootstrap.effectiveHeadless(true, true, false, false, null));
+        assertFalse(UpdaterBootstrap.effectiveHeadless(false, true, false, false, null));
+    }
+
+    @Test
+    void guiDisabledAndDedicatedServersStillUseTheParentFlag() {
+        assertTrue(
+                UpdaterBootstrap.effectiveHeadless(true, false, false, true, null),
+                "packupdater.gui=false must not have its headless flag changed by a probe");
+        assertTrue(
+                UpdaterBootstrap.effectiveHeadless(true, true, true, true, null),
+                "a dedicated server must not let a probe report a window");
+        assertFalse(
+                UpdaterBootstrap.effectiveHeadless(false, true, true, true, "a reason"),
+                "a dedicated server keeps the parent's non-headless answer too");
+    }
+
+    @Test
     void probeFailureSuppressesTheWindow() {
         assertFalse(
                 gui(true, false, "window probe failed: java.awt.AWTError Can't connect to X11", false),
