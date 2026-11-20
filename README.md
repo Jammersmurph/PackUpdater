@@ -31,7 +31,7 @@ These are standard PackUpdater features, delivered through its maintained
 Replacing the installer remains an advanced configuration option; the Packwiz
 tool and existing pack format are unchanged.
 
-See the [player guide](docs/Player-guide.md) or [release changelog](CHANGELOG.md).
+See the author guides below or the [release changelog](CHANGELOG.md).
 
 ## For modpack authors
 
@@ -124,7 +124,6 @@ Full reference, including every configuration key and what happens on restricted
 
 - [Optional-mod groups](docs/Optional-mod-groups.md) — developer config and player controls
 - [Installer and branding](docs/Installer.md) — default source, artwork, and migration
-- [Player guide](docs/Player-guide.md) — updating, selecting mods, and troubleshooting
 - [Changelog](CHANGELOG.md) — release details and migration notes
 
 **[github.com/Jammersmurph/PackUpdater/wiki](https://github.com/Jammersmurph/PackUpdater/wiki)**

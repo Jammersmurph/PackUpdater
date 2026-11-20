@@ -46,7 +46,7 @@ below do not require changes to the Packwiz tool.
 
 ### Documentation and distribution
 
-- Added an authoring example, player guide, optional-group reference, and
+- Added an authoring example, optional-group reference, and
   installer/branding/migration guide.
 - Updated first-run config comments to describe automatic completion and group
   placement, and corrected the claim that a blank installer URL disables updates.
