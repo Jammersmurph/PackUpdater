@@ -21,6 +21,11 @@ PackUpdater syncs the instance against your pack's `pack.toml`: new mods arrive,
 replaced, removed files are cleaned up, and everything is verified against PackWiz's content
 hashes. If your pack uses optional mods, players get the PackWiz installer's window to pick them.
 
+The default installer is now
+**[Jammersmurph/packwiz-installer](https://github.com/Jammersmurph/packwiz-installer)**,
+with the purple-themed UI, automatic pack names, custom pack icons, and optional-mod
+groups. The Packwiz tool and existing pack format are unchanged.
+
 ## For modpack authors
 
 Two files, nothing else:
@@ -64,9 +69,54 @@ file carries an `[update.github]` block, so one copy keeps working forever and `
 handles new releases. **No CI changes needed** — if your pack already runs `packwiz update --all`,
 PackUpdater is picked up automatically.
 
+### Optional-mod groups
+
+Download **`optional-groups.toml`** from a release, or copy the
+[example](examples/optional-groups.toml), and place it **beside your hosted
+`pack.toml`**—not in the client's `config/` folder:
+
+```toml
+version = 1
+
+[[groups]]
+id = "vr"
+name = "VR Support"
+description = "Enable these mods when playing with a VR headset."
+mods = [
+    "mods/vivecraft.pw.toml",
+    "mods/vivecraft-compat.pw.toml",
+]
+```
+
+Replace the paths with your own **optional** mods' `.pw.toml` paths. Players can
+expand groups, select entire groups, or change individual mods. Ungrouped optional
+mods remain available, and existing selections/defaults are preserved.
+No Packwiz tool changes or index entry are needed for this config.
+
+See the [full optional-group guide](docs/Optional-mod-groups.md) for all fields,
+fallbacks, and examples.
+
+### Pack branding and existing configurations
+
+The installer uses your `pack.toml` name automatically. Add one `icon.png`,
+`icon.webp`, `icon.jpg`, `icon.jpeg`, `icon.gif`, or `icon.bmp` beside it for
+custom artwork. Multiple matching icons keep the default PackUpdater logo.
+
+**Existing explicit installer URLs are not replaced automatically.** If your
+pack still points at the original installer, update its configuration to:
+
+```properties
+packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/latest
+```
+
+See [installer source, artwork, and migration](docs/Installer.md).
+
 ## Documentation
 
 Full reference, including every configuration key and what happens on restricted platforms:
+
+- [Optional-mod groups](docs/Optional-mod-groups.md) — developer config and player controls
+- [Installer and branding](docs/Installer.md) — default source, artwork, and migration
 
 **[github.com/Jammersmurph/PackUpdater/wiki](https://github.com/Jammersmurph/PackUpdater/wiki)**
 

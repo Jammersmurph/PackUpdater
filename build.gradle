@@ -69,6 +69,12 @@ neoForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+tasks.named('processResources', ProcessResources).configure {
+    from('examples/optional-groups.toml') {
+        into 'examples'
+    }
+}
+
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -123,4 +129,3 @@ idea {
         downloadJavadoc = true
     }
 }
-

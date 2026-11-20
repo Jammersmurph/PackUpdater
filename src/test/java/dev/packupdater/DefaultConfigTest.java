@@ -1,8 +1,13 @@
 package dev.packupdater;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Properties;
+import java.io.StringReader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,6 +19,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * would get a file the mod itself does not produce.
  */
 class DefaultConfigTest {
+
+    @Test
+    void omittedInstallerUrlUsesNewDefault(@TempDir Path gameDir) throws Exception {
+        Path config = gameDir.resolve("config/packupdater.properties");
+        Files.createDirectories(config.getParent());
+        Files.writeString(config, "packupdater.url=https://example.com/pack.toml\n");
+        assertEquals(UpdaterConfig.DEFAULT_INSTALLER_URL, UpdaterConfig.load(gameDir).installerUrl);
+    }
+
+    @Test
+    void explicitExistingInstallerUrlIsPreserved(@TempDir Path gameDir) throws Exception {
+        Path config = gameDir.resolve("config/packupdater.properties");
+        Files.createDirectories(config.getParent());
+        String upstream = "https://api.github.com/repos/packwiz/packwiz-installer/releases/latest";
+        Files.writeString(config, "packupdater.installer-url=" + upstream + "\n");
+        assertEquals(upstream, UpdaterConfig.load(gameDir).installerUrl);
+    }
+
+    @Test
+    void blankInstallerUrlFallsBackToDefault(@TempDir Path gameDir) throws Exception {
+        Path config = gameDir.resolve("config/packupdater.properties");
+        Files.createDirectories(config.getParent());
+        Files.writeString(config, "packupdater.installer-url=   \n");
+        assertEquals(UpdaterConfig.DEFAULT_INSTALLER_URL, UpdaterConfig.load(gameDir).installerUrl);
+    }
+
+    @Test
+    void shippedAndBuiltInDefaultsUseTheThemedInstallerFork() throws Exception {
+        String expected = "https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/latest";
+        assertEquals(expected, UpdaterConfig.DEFAULT_INSTALLER_URL);
+        Properties template = new Properties();
+        template.load(new StringReader(UpdaterConfig.defaultTemplate()));
+        assertEquals(expected, template.getProperty(UpdaterConfig.KEY_INSTALLER_URL));
+        assertEquals("packwiz-installer.jar", template.getProperty(UpdaterConfig.KEY_INSTALLER_ASSET));
+    }
+
+    @Test
+    void optionalGroupsExampleIsPackagedForReleaseAuthors() throws Exception {
+        try (var in = UpdaterConfig.class.getResourceAsStream("/examples/optional-groups.toml")) {
+            assertTrue(in != null, "the release example must also be available in the built jar");
+            String example = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(example.contains("version = 1"));
+            assertTrue(example.contains("[[groups]]"));
+            assertTrue(example.contains("name = \"VR Support\""));
+            assertTrue(example.contains("mods/vivecraft.pw.toml"));
+        }
+    }
 
     @Test
     void defaultConfigIsPackagedAndReadable() throws Exception {

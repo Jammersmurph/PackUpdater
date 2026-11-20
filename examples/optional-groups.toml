@@ -1,0 +1,23 @@
+# EXAMPLE: replace the paths below with optional mods from your own pack.
+# Put this file beside the hosted pack.toml, not in the client's config folder.
+# No PackWiz tool changes or index registration are needed for this file.
+# Paths are relative to pack.toml and point to .pw.toml metadata, not JAR files.
+# Version is the configuration format; version 1 is assumed if omitted.
+version = 1
+
+[[groups]]
+id = "vr"
+name = "VR Support"
+description = "Enable these mods when playing with a VR headset."
+mods = [
+    "mods/vivecraft.pw.toml",
+    "mods/vivecraft-compat.pw.toml",
+]
+
+[[groups]]
+id = "visuals"
+name = "Visual Enhancements"
+description = "Optional shader and rendering enhancements."
+mods = [
+    "mods/iris.pw.toml",
+]

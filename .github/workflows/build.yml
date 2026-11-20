@@ -130,10 +130,15 @@ jobs:
           # modpack author needs nothing hand-written.
           install -m 644 src/main/resources/default-packupdater.properties packupdater.properties
 
+          # Optional authoring template, hosted beside pack.toml rather than installed
+          # into the client's config folder. Paths in this example must be customized.
+          install -m 644 examples/optional-groups.toml optional-groups.toml
+
           gh release create "$tag" \
             --title "$tag" \
             --generate-notes \
             packupdater.jar \
             packupdater.pw.toml \
-            packupdater.properties
-          echo "Published $tag (mod_version=$version): packupdater.jar, packupdater.pw.toml, packupdater.properties"
+            packupdater.properties \
+            optional-groups.toml
+          echo "Published $tag (mod_version=$version): packupdater.jar, packupdater.pw.toml, packupdater.properties, optional-groups.toml"

@@ -41,7 +41,7 @@ public final class UpdaterConfig {
     public static final String KEY_FALLBACK = "packupdater.fallback";
 
     public static final String DEFAULT_INSTALLER_URL =
-            "https://api.github.com/repos/packwiz/packwiz-installer/releases/latest";
+            "https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/latest";
     public static final String DEFAULT_INSTALLER_ASSET = "packwiz-installer.jar";
 
     private static final String CONFIG_RELATIVE_PATH = "config/packupdater.properties";
