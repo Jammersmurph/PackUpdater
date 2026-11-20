@@ -100,7 +100,7 @@ expand groups, select entire groups, or change individual mods. Ungrouped option
 mods remain available, and existing selections/defaults are preserved.
 No Packwiz tool changes or index entry are needed for this config.
 
-See the [full optional-group guide](docs/Optional-mod-groups.md) for all fields,
+See the [full optional-group guide](https://github.com/Jammersmurph/PackUpdater/wiki/Optional-mod-groups) for all fields,
 fallbacks, and examples.
 
 ### Pack branding and existing configurations
@@ -116,22 +116,19 @@ pack still points at the original installer, update its configuration to:
 packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/latest
 ```
 
-See [installer source, artwork, and migration](docs/Installer.md).
+See [installer source, artwork, and migration](https://github.com/Jammersmurph/PackUpdater/wiki/Installer-and-branding).
 
 ## Documentation
-
-Full reference, including every configuration key and what happens on restricted platforms:
-
-- [Optional-mod groups](docs/Optional-mod-groups.md) — developer config and player controls
-- [Installer and branding](docs/Installer.md) — default source, artwork, and migration
-- [Changelog](CHANGELOG.md) — release details and migration notes
 
 **[github.com/Jammersmurph/PackUpdater/wiki](https://github.com/Jammersmurph/PackUpdater/wiki)**
 
 - [Configuration](https://github.com/Jammersmurph/PackUpdater/wiki/Configuration) — every key, grouped by intent
+- [Optional-mod groups](https://github.com/Jammersmurph/PackUpdater/wiki/Optional-mod-groups) — group configuration and selection behavior
+- [Installer and branding](https://github.com/Jammersmurph/PackUpdater/wiki/Installer-and-branding) — default source, artwork, and migration
 - [Restricted platforms](https://github.com/Jammersmurph/PackUpdater/wiki/Restricted-platforms) — Android launchers and headless servers
 - [How it works](https://github.com/Jammersmurph/PackUpdater/wiki/How-it-works) — architecture and design notes
 - [Building](https://github.com/Jammersmurph/PackUpdater/wiki/Building) — development setup
+- [Changelog](CHANGELOG.md) — release details and migration notes (in this repository)
 
 ## Credits
 

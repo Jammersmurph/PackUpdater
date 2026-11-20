@@ -70,5 +70,5 @@ below do not require changes to the Packwiz tool.
 - Android, dedicated-server, and silent-fallback behavior is unchanged.
   Grouping does not opt desktop-only mods into restricted platforms.
 
-See the [migration guide](docs/Installer.md#migrating-an-existing-pack) and
-[optional-group guide](docs/Optional-mod-groups.md).
+See the [migration guide](https://github.com/Jammersmurph/PackUpdater/wiki/Installer-and-branding#migrating-an-existing-pack) and
+[optional-group guide](https://github.com/Jammersmurph/PackUpdater/wiki/Optional-mod-groups).
