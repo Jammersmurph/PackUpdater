@@ -1,8 +1,13 @@
-# Installer source, branding, and migration
+# PackUpdater branding, installer configuration, and migration
 
 ## Default installer
 
-PackUpdater now defaults to
+PackUpdater's desktop features include the themed update window, automatic pack
+names, custom artwork, and [optional-mod groups](Optional-mod-groups.md).
+The companion installer is part of the supported PackUpdater experience, not an
+extra modpack authors need to find or configure separately.
+
+Its standard source is
 [Jammersmurph/packwiz-installer](https://github.com/Jammersmurph/packwiz-installer):
 
 ```properties
@@ -10,8 +15,8 @@ packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-inst
 packupdater.installer-asset=packwiz-installer.jar
 ```
 
-This fork provides the themed desktop window, automatic pack names, pack artwork,
-and [optional-mod groups](Optional-mod-groups.md). It still installs standard
+The installer URL is configurable for advanced deployments, but the rest of
+these guides assumes the supported default. PackUpdater still installs standard
 Packwiz packs; modpack authors do not need a modified Packwiz tool.
 
 PackUpdater extracts its embedded bootstrapper, which checks the installer's

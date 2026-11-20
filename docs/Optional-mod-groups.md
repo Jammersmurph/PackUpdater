@@ -1,8 +1,8 @@
 # Optional-mod groups
 
-PackUpdater defaults to [Jammersmurph's Packwiz installer](https://github.com/Jammersmurph/packwiz-installer).
-Its optional-mod window supports collapsible groups and group-wide selection.
-This is an installer feature: **no changes to the Packwiz tool are required**.
+PackUpdater's optional-mod window supports collapsible groups and group-wide
+selection. Authors configure these as part of their pack using the standard
+PackUpdater installer. **No changes to the Packwiz tool are required**.
 
 ## 1. Add the example beside your hosted pack.toml
 

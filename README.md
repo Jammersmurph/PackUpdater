@@ -19,12 +19,19 @@ Configured through a file in the instance, so players never need JVM arguments.
 Drop the jar in a modpack and it takes care of itself. On every launch, before mods load,
 PackUpdater syncs the instance against your pack's `pack.toml`: new mods arrive, changed files are
 replaced, removed files are cleaned up, and everything is verified against PackWiz's content
-hashes. If your pack uses optional mods, players get the PackWiz installer's window to pick them.
+hashes. PackUpdater's desktop experience includes:
 
-The default installer is now
-**[Jammersmurph/packwiz-installer](https://github.com/Jammersmurph/packwiz-installer)**,
-with the purple-themed UI, automatic pack names, custom pack icons, and optional-mod
-groups. The Packwiz tool and existing pack format are unchanged.
+- A purple-themed progress window that closes automatically after updating.
+- Your modpack's name and custom artwork in the updater.
+- Searchable optional mods, with collapsible groups and group-wide selection.
+- An expandable activity log and download-error details.
+
+These are standard PackUpdater features, delivered through its maintained
+[companion installer](https://github.com/Jammersmurph/packwiz-installer).
+Replacing the installer remains an advanced configuration option; the Packwiz
+tool and existing pack format are unchanged.
+
+See the [player guide](docs/Player-guide.md) or [release changelog](CHANGELOG.md).
 
 ## For modpack authors
 
@@ -98,7 +105,7 @@ fallbacks, and examples.
 
 ### Pack branding and existing configurations
 
-The installer uses your `pack.toml` name automatically. Add one `icon.png`,
+PackUpdater uses your `pack.toml` name automatically. Add one `icon.png`,
 `icon.webp`, `icon.jpg`, `icon.jpeg`, `icon.gif`, or `icon.bmp` beside it for
 custom artwork. Multiple matching icons keep the default PackUpdater logo.
 
@@ -117,6 +124,8 @@ Full reference, including every configuration key and what happens on restricted
 
 - [Optional-mod groups](docs/Optional-mod-groups.md) — developer config and player controls
 - [Installer and branding](docs/Installer.md) — default source, artwork, and migration
+- [Player guide](docs/Player-guide.md) — updating, selecting mods, and troubleshooting
+- [Changelog](CHANGELOG.md) — release details and migration notes
 
 **[github.com/Jammersmurph/PackUpdater/wiki](https://github.com/Jammersmurph/PackUpdater/wiki)**
 
@@ -137,8 +146,9 @@ file, made every URL configurable instead of pinned to a fork, fixed a build tha
 compile, turned the embedded bootstrap from an opaque binary into readable source, and added
 install paths that work on platforms that cannot start a second JVM or show a window.
 
-Thanks to swzo for the original work, and to the
-[PackWiz](https://github.com/packwiz/packwiz-installer) project that does the actual installing.
+Thanks to swzo for the original work, and to the upstream
+[PackWiz](https://github.com/packwiz/packwiz-installer) project. PackUpdater's
+maintained companion installer builds on their installation engine.
 
 ## License
 
