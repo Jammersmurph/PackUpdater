@@ -135,7 +135,7 @@ Full reference, including every configuration key and what happens on restricted
 
 ## Credits
 
-PackUpdater is a fork of **[BrassUpdater](https://github.com/Brassworks-smp/BrassUpdater)** by
+PackUpdater is a heavily modified fork of **[BrassUpdater](https://github.com/Brassworks-smp/BrassUpdater)** by
 **[swzo](https://github.com/salem-5)**, the auto-updater for the Brassworks SMP. That mod is where
 the transformation-service approach, the bootstrap-then-installer hand-off, and the loading-screen
 progress reporting all come from.
