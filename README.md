@@ -130,6 +130,16 @@ See [installer source, artwork, and migration](https://github.com/Jammersmurph/P
 - [Building](https://github.com/Jammersmurph/PackUpdater/wiki/Building) — development setup
 - [Changelog](CHANGELOG.md) — release details and migration notes (in this repository)
 
+## Publishing releases
+
+Push a `v<mod_version>` tag matching `gradle.properties` to publish a GitHub release.
+If the tagged commit is on `main` and GitHub marks the release as the latest stable
+release, CI also uploads `packupdater.jar` to
+[Modrinth](https://modrinth.com/mod/packwiz-updater/) using the repository secret
+`MODRINTH_TOKEN`. The token must have permission to create versions on that project.
+Minecraft compatibility comes from `minecraft_version` in `gradle.properties`;
+the loader is NeoForge, and release notes are copied from GitHub.
+
 ## Credits
 
 PackUpdater is a heavily modified fork of **[BrassUpdater](https://github.com/Brassworks-smp/BrassUpdater)** by

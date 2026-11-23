@@ -142,3 +142,67 @@ jobs:
             packupdater.properties \
             optional-groups.toml
           echo "Published $tag (mod_version=$version): packupdater.jar, packupdater.pw.toml, packupdater.properties, optional-groups.toml"
+
+      - name: Publish latest main release to Modrinth
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          # Tag workflows do not identify a source branch. Check ancestry explicitly,
+          # and only mirror the release GitHub currently considers latest.
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "Skipping Modrinth: $GITHUB_REF_NAME is not on main."
+            exit 0
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > release.json
+          if ! jq -e --arg tag "$GITHUB_REF_NAME" \
+            '.tag_name == $tag and .draft == false and .prerelease == false' release.json > /dev/null; then
+            echo "Skipping Modrinth: $GITHUB_REF_NAME is not the latest stable release."
+            exit 0
+          fi
+          if [ -z "$MODRINTH_TOKEN" ]; then
+            echo "::error::MODRINTH_TOKEN must be set as a repository secret."
+            exit 1
+          fi
+
+          # Authenticate project lookup too, so this works before project approval.
+          api="https://api.modrinth.com/v2"
+          user_agent="$GITHUB_REPOSITORY (GitHub Actions)"
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: $MODRINTH_TOKEN" -H "User-Agent: $user_agent" \
+            "$api/project/packwiz-updater" > modrinth-project.json
+          project_id="$(jq -er '.id' modrinth-project.json)"
+          version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
+          minecraft_version="$(grep -E '^minecraft_version=' gradle.properties | cut -d= -f2)"
+
+          # Avoid duplicate versions if publication is retried.
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: $MODRINTH_TOKEN" -H "User-Agent: $user_agent" \
+            "$api/project/$project_id/version" > modrinth-versions.json
+          if jq -e --arg version "$version" \
+            'any(.[]; .version_number == $version)' modrinth-versions.json > /dev/null; then
+            echo "Modrinth already has version $version; skipping."
+            exit 0
+          fi
+
+          jq --arg project_id "$project_id" --arg version "$version" \
+            --arg minecraft_version "$minecraft_version" '{
+              project_id: $project_id,
+              name: .name,
+              version_number: $version,
+              changelog: (.body // ""),
+              dependencies: [],
+              game_versions: [$minecraft_version],
+              version_type: "release",
+              loaders: ["neoforge"],
+              featured: true,
+              status: "listed",
+              file_parts: ["file"],
+              primary_file: "file"
+            }' release.json > modrinth-version.json
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: $MODRINTH_TOKEN" -H "User-Agent: $user_agent" \
+            --form 'data=<modrinth-version.json;type=application/json' \
+            --form 'file=@packupdater.jar;type=application/java-archive' \
+            "$api/version"
