@@ -1,6 +1,8 @@
 # PackUpdater changelog
 
-## Unreleased — wider NeoForge compatibility
+## 1.7.0 — wider NeoForge compatibility
+
+One drop-in jar now supports **NeoForge for Minecraft 1.20.1 through 26.3**.
 
 - Keep one drop-in jar and the existing ModLauncher startup path for 1.21.1.
 - Support original-namespace NeoForge 1.20.1 in the same jar, using Java 17
@@ -23,7 +25,11 @@
   change was regression-tested on 1.21. See [Compatibility](docs/Compatibility.md)
   for coverage and limitations.
 - Publish the supported Minecraft version list to Modrinth instead of only the
-  build target. No release has been published for these changes yet.
+  build target.
+- Automatically tag and publish new versions after successful CI on `main`,
+  using `mod_version` from `gradle.properties`; already released versions are skipped.
+- Include these compatibility notes in the GitHub release. Modrinth publication
+  is best-effort: upload failures do not fail CI or block the GitHub release.
 
 ## 1.6.3 — 2026-11-20
 

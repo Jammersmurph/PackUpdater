@@ -84,14 +84,60 @@ jobs:
   release:
     name: release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
+    concurrency:
+      group: packupdater-release
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare version tag
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::mod_version must be a stable semantic version."
+            exit 1
+          fi
+          tag="v${version}"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$tag" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match mod_version=$version"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+          # A normal main push need not bump the version. API failures must fail
+          # the job rather than being mistaken for an unpublished version.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
+            --jq '.[].tag_name' > published-tags.txt
+          if grep -Fxq "$tag" published-tags.txt; then
+            echo "Release $tag already exists; bump mod_version for a new release."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            if [[ "$(git rev-parse "$tag^{commit}")" != "$GITHUB_SHA" ]]; then
+              echo "::error::$tag already points to a different commit; refusing to move it."
+              exit 1
+            fi
+          else
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$tag"
+          fi
+          # GITHUB_TOKEN-created tags do not trigger another workflow. Continue
+          # publishing here, after the build job has passed.
+          echo "publish=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v4
+        if: steps.version.outputs.publish == 'true'
         with:
           java-version: |
             17
@@ -100,18 +146,23 @@ jobs:
           distribution: temurin
 
       - name: Rebuild embedded bootstrap
+        if: steps.version.outputs.publish == 'true'
         run: ./bootstrap/build.sh
 
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.version.outputs.publish == 'true'
 
       - name: Build mod
+        if: steps.version.outputs.publish == 'true'
         run: ./gradlew build --console=plain -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64
 
       - name: Publish release
+        if: steps.version.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          tag="$RELEASE_TAG"
           version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
           if [[ "$tag" != "v${version}" ]]; then
             echo "::error::tag $tag does not match mod_version=$version in gradle.properties"
@@ -158,8 +209,22 @@ jobs:
           # into the client's config folder. Paths in this example must be customized.
           install -m 644 examples/optional-groups.toml optional-groups.toml
 
+          # Put the version's compatibility notes directly on the GitHub release,
+          # before GitHub's generated commit/contributor summary.
+          python3 - <<'PY'
+          from pathlib import Path
+          version = next(line.split("=", 1)[1] for line in Path("gradle.properties").read_text().splitlines()
+                         if line.startswith("mod_version="))
+          sections = Path("CHANGELOG.md").read_text().split("\n## ")
+          notes = next(section.split("\n", 1)[1].strip() for section in sections[1:]
+                       if section.split(" —", 1)[0] == version)
+          Path("release-notes.md").write_text(notes + "\n")
+          PY
+
           gh release create "$tag" \
+            --verify-tag \
             --title "$tag" \
+            --notes-file release-notes.md \
             --generate-notes \
             packupdater.jar \
             packupdater.pw.toml \
@@ -168,21 +233,24 @@ jobs:
           echo "Published $tag (mod_version=$version): packupdater.jar, packupdater.pw.toml, packupdater.properties, optional-groups.toml"
 
       - name: Publish latest main release to Modrinth
+        if: steps.version.outputs.publish == 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
           # Tag workflows do not identify a source branch. Check ancestry explicitly,
           # and only mirror the release GitHub currently considers latest.
           git fetch --no-tags origin main:refs/remotes/origin/main
           if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
-            echo "Skipping Modrinth: $GITHUB_REF_NAME is not on main."
+            echo "Skipping Modrinth: $RELEASE_TAG is not on main."
             exit 0
           fi
           gh api "repos/$GITHUB_REPOSITORY/releases/latest" > release.json
-          if ! jq -e --arg tag "$GITHUB_REF_NAME" \
+          if ! jq -e --arg tag "$RELEASE_TAG" \
             '.tag_name == $tag and .draft == false and .prerelease == false' release.json > /dev/null; then
-            echo "Skipping Modrinth: $GITHUB_REF_NAME is not the latest stable release."
+            echo "Skipping Modrinth: $RELEASE_TAG is not the latest stable release."
             exit 0
           fi
           if [ -z "$MODRINTH_TOKEN" ]; then

@@ -13,8 +13,8 @@ in `supported_minecraft_versions` for Modrinth publication.
 If an installation fails, [open a GitHub issue](https://github.com/Jammersmurph/PackUpdater/issues/new)
 with the Minecraft version, NeoForge version, Java version, and full launch log.
 
-These changes are unreleased; the published 1.6.3 jar does not contain the modern
-loader adapter or expanded version ranges.
+These changes are included in 1.7.0 and later; the 1.6.3 jar
+does not contain the modern loader adapter or expanded version ranges.
 
 ## Desktop regression checks
 

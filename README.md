@@ -43,8 +43,8 @@ with your Minecraft and NeoForge versions and launch log.
 
 See [Compatibility](https://github.com/Jammersmurph/PackUpdater/wiki/Compatibility)
 and [test details](docs/Compatibility.md) for loader integration,
-test coverage, and environment limitations. These development changes are not
-part of the existing 1.6.3 release.
+test coverage, and environment limitations. Expanded compatibility is included
+in 1.7.0 and later; the 1.6.3 jar does not include it.
 
 ## For modpack authors
 
