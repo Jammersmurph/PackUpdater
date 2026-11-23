@@ -200,7 +200,7 @@ jobs:
           version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
           minecraft_versions="$(grep -E '^supported_minecraft_versions=' gradle.properties | cut -d= -f2)"
           if [ -z "$minecraft_versions" ]; then
-            echo "::error::supported_minecraft_versions must list the verified Minecraft releases."
+            echo "::error::supported_minecraft_versions must list the supported Minecraft releases."
             exit 1
           fi
 

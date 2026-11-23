@@ -1,7 +1,7 @@
-# Original-namespace NeoForge (Minecraft 1.20.1) reads mods.toml.
-# Startup is provided by the transformation service; no old JavaFML @Mod is needed.
+# Earlier NeoForge releases read mods.toml, before neoforge.mods.toml was introduced.
+# Startup is provided by the transformation service in either package namespace.
 modLoader = "lowcodefml"
-loaderVersion = "[47,48)"
+loaderVersion = "[1,4),[47,48)"
 license = "${mod_license}"
 
 [[mods]]
@@ -13,14 +13,23 @@ description = '''${mod_description}'''
 
 [[dependencies."${mod_id}"]]
 modId = "forge"
-mandatory = true
-versionRange = "[47.1.106,48)"
+# NeoForge 1.20.1 still identifies the loader mod as "forge". Later releases
+# identify it as "neoforge", so validate whichever identifier is present.
+mandatory = false
+versionRange = "[47,48)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "neoforge"
+mandatory = false
+versionRange = "${neo_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies."${mod_id}"]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.20.1]"
+versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"

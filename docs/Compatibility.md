@@ -3,7 +3,20 @@
 PackUpdater uses **one jar**, installed in `mods/`, with no Java agent or launcher
 arguments. It does not depend on Minecraft gameplay classes.
 
-## Verified desktop builds (current source)
+## Support range
+
+The current source supports **NeoForge for Minecraft 1.20.1 through 26.3** with
+one jar. Both generations of mod metadata allow the intermediate releases and
+their corresponding loader versions. Stable releases in this range are listed
+in `supported_minecraft_versions` for Modrinth publication.
+
+If an installation fails, [open a GitHub issue](https://github.com/Jammersmurph/PackUpdater/issues/new)
+with the Minecraft version, NeoForge version, Java version, and full launch log.
+
+These changes are unreleased; the published 1.6.3 jar does not contain the modern
+loader adapter or expanded version ranges.
+
+## Desktop regression checks
 
 | Minecraft | NeoForge | Live checks |
 |---|---|---|
@@ -17,8 +30,6 @@ three targets (1.21, 1.21.1, 26.3) used the identical Java 21-core build. Adding
 1.20.1 lowered the shared core and embedded bootstrap to Java 17; that build was
 then checked on 1.20.1 and rechecked on 1.21. The modern adapter also remains
 covered by its loader-library tests.
-The 26.3 test is not a claim that every 26.x release works. These changes are
-unreleased; the published 1.6.3 jar does not contain the modern loader adapter.
 
 The 1.21.1 baseline downloaded the companion installer from the normal GitHub
 endpoint. Later tests used a local snapshot of that same installer
@@ -29,8 +40,9 @@ attempt did not verify updating; the subsequent local-snapshot attempts did.
 
 - **ModLauncher-based NeoForge:** the existing transformation service still runs
   the updater before mod discovery. Original-namespace NeoForge 1.20.1 uses its
-  public `net.minecraftforge` loader APIs and `META-INF/mods.toml`; later releases
-  use `net.neoforged` and `META-INF/neoforge.mods.toml`. Both descriptors are in
+  public `net.minecraftforge` loader APIs. Subsequent versions use `net.neoforged`.
+  Earlier releases read `META-INF/mods.toml`, while newer ones read
+  `META-INF/neoforge.mods.toml`. Both descriptors are in
   the same jar. The old descriptor uses LowCodeFML because startup is handled by
   the transformation service, not a version-specific mod constructor.
 - **Newer NeoForge without ModLauncher:** a highest-priority mod-file candidate
@@ -55,8 +67,7 @@ renamed-namespace FML 3, 4, 9, 10, and 12. Building/testing needs JDK 17, JDK 21
 and JDK 25; the bundled adapter, core, and bootstrap target Java 17 bytecode.
 The game still needs the Java runtime required by its own version.
 
-The current suite has 49 tests per loader (294 executions). Loader-only checks
-on FML 3, 9, or 10 do not add any game releases to the advertised support list.
+Loader-library checks complement the live desktop regression checks above.
 
 Live launch evidence is collected separately using dedicated Prism instances,
 one visible instance at a time:

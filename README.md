@@ -37,13 +37,12 @@ See the author guides below or the [release changelog](CHANGELOG.md).
 
 PackUpdater is a general NeoForge updater, with loader integrations for both older
 ModLauncher-based releases and newer NeoForge. The current source supports
-**Minecraft 1.20.1, 1.21, 1.21.1, and 26.3 with one jar** and no JVM arguments.
-Those versions have been checked in
-visible Prism desktop launches, including same-launch loading of a downloaded
-test mod and the installer window. Other releases are not yet verified.
+**NeoForge for Minecraft 1.20.1 through 26.3 with one jar** and no JVM arguments.
+If you encounter a compatibility problem, [open a GitHub issue](https://github.com/Jammersmurph/PackUpdater/issues/new)
+with your Minecraft and NeoForge versions and launch log.
 
 See [Compatibility](https://github.com/Jammersmurph/PackUpdater/wiki/Compatibility)
-and [test details](docs/Compatibility.md) for exact tested builds,
+and [test details](docs/Compatibility.md) for loader integration,
 test coverage, and environment limitations. These development changes are not
 part of the existing 1.6.3 release.
 

@@ -11,14 +11,18 @@
 - Verify desktop updating on Minecraft 1.20.1 / NeoForge 47.1.106 (Java 17),
   Minecraft 1.21 / NeoForge 21.0.167,
   1.21.1 / NeoForge 21.1.216, and 26.3 / NeoForge 26.3.0.115.
-  Other Minecraft releases are not yet advertised as supported.
+  These form the desktop regression checks for the broader support range.
+- Widen the jar metadata and Modrinth version list to cover NeoForge's stable
+  Minecraft releases from 1.20.1 through 26.3. Earlier metadata accepts both loader
+  identifiers and language-provider version schemes. Compatibility problems can
+  be reported through GitHub issues.
 - Replace private-field progress-bar reflection with an updater-owned bar.
   Cosmetic progress failures cannot interrupt updating.
 - Add real-loader test suites and a visible, sequential Prism/Packwiz test
   fixture using harmless config files, not a helper mod. The final older-version
   change was regression-tested on 1.21. See [Compatibility](docs/Compatibility.md)
   for coverage and limitations.
-- Publish the verified Minecraft version list to Modrinth instead of only the
+- Publish the supported Minecraft version list to Modrinth instead of only the
   build target. No release has been published for these changes yet.
 
 ## 1.6.3 — 2026-11-20
