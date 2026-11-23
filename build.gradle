@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'idea'
-    id 'net.neoforged.moddev' version '2.0.121'
+    id 'net.neoforged.moddev' version '2.0.148'
 }
 
 version = mod_version
@@ -18,9 +18,19 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Java 17 is required by NeoForge 1.20.1. Compile against newer loader APIs
+// without making those game-independent classes require the newer JVM.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}
+
 neoForge {
 
-    version = project.neo_version
+    enable {
+        version = project.neo_version
+        // The updater uses loader APIs, not patched Minecraft sources.
+        disableRecompilation = true
+    }
 
     parchment {
         mappingsVersion = project.parchment_mappings_version
@@ -69,6 +79,41 @@ neoForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+// FML 10+ no longer uses ModLauncher. Compile its tiny adapter separately so
+// newer loader dependencies cannot leak into the Java 17-compatible core.
+sourceSets {
+    modern {
+        compileClasspath += sourceSets.main.output
+    }
+}
+
+configurations.modernCompileClasspath.attributes {
+    attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+}
+
+['compileClasspath', 'testCompileClasspath', 'testRuntimeClasspath'].each { name ->
+    configurations.named(name) {
+        attributes {
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 21)
+        }
+    }
+}
+
+dependencies {
+    modernCompileOnly "net.neoforged.fancymodloader:loader:12.0.16"
+}
+
+tasks.named('compileModernJava', JavaCompile) {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    options.release = 17
+}
+
+tasks.named('jar', Jar) {
+    from sourceSets.modern.output
+}
+
 tasks.named('processResources', ProcessResources).configure {
     from('examples/optional-groups.toml') {
         into 'examples'
@@ -76,6 +121,8 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 dependencies {
+    testImplementation sourceSets.modern.output
+    testImplementation "net.neoforged.fancymodloader:loader:4.0.45"
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -85,6 +132,38 @@ test {
     useJUnitPlatform()
     testLogging {
         events 'passed', 'skipped', 'failed'
+    }
+}
+
+// Run the same updater tests with the real loader libraries in separate JVMs.
+// This catches linkage changes without mistaking it for a full game launch test.
+[
+        loader47: [version: '47.2.2', java: 17],
+        loader3 : [version: '3.0.45', java: 21],
+        loader9 : [version: '9.0.19', java: 21],
+        loader10: [version: '10.0.37', java: 21],
+        loader12: [version: '12.0.16', java: 25]
+].each { name, target ->
+    def runtime = configurations.create("${name}TestRuntime") {
+        extendsFrom configurations.testRuntimeClasspath
+        canBeConsumed = false
+        canBeResolved = true
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, target.java)
+        }
+        resolutionStrategy.force "net.neoforged.fancymodloader:loader:${target.version}"
+    }
+    def suite = tasks.register("${name}Test", Test) {
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.main.output + sourceSets.test.output + runtime
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(target.java)
+        }
+        useJUnitPlatform()
+    }
+    tasks.named('check') {
+        dependsOn suite
     }
 }
 

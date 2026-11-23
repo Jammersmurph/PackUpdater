@@ -1,0 +1,26 @@
+# Original-namespace NeoForge (Minecraft 1.20.1) reads mods.toml.
+# Startup is provided by the transformation service; no old JavaFML @Mod is needed.
+modLoader = "lowcodefml"
+loaderVersion = "[47,48)"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+
+[[dependencies."${mod_id}"]]
+modId = "forge"
+mandatory = true
+versionRange = "[47.1.106,48)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1]"
+ordering = "NONE"
+side = "BOTH"

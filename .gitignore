@@ -14,3 +14,5 @@ packupdater.pw.toml
 # Reference config for packs that ship this mod; sample values only.
 # release and belong in the pack repo, not here.
 run/
+__pycache__/
+logs/

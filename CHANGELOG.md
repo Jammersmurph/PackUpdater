@@ -1,5 +1,26 @@
 # PackUpdater changelog
 
+## Unreleased — wider NeoForge compatibility
+
+- Keep one drop-in jar and the existing ModLauncher startup path for 1.21.1.
+- Support original-namespace NeoForge 1.20.1 in the same jar, using Java 17
+  bytecode and both generations of mod metadata. No extra compatibility mod is
+  needed or bundled.
+- Add an early mod-file locator for newer NeoForge releases without ModLauncher.
+  Both integrations call the same updater and are guarded against duplicate runs.
+- Verify desktop updating on Minecraft 1.20.1 / NeoForge 47.1.106 (Java 17),
+  Minecraft 1.21 / NeoForge 21.0.167,
+  1.21.1 / NeoForge 21.1.216, and 26.3 / NeoForge 26.3.0.115.
+  Other Minecraft releases are not yet advertised as supported.
+- Replace private-field progress-bar reflection with an updater-owned bar.
+  Cosmetic progress failures cannot interrupt updating.
+- Add real-loader test suites and a visible, sequential Prism/Packwiz test
+  fixture using harmless config files, not a helper mod. The final older-version
+  change was regression-tested on 1.21. See [Compatibility](docs/Compatibility.md)
+  for coverage and limitations.
+- Publish the verified Minecraft version list to Modrinth instead of only the
+  build target. No release has been published for these changes yet.
+
 ## 1.6.3 — 2026-11-20
 
 This release makes the maintained PackUpdater installer the default and

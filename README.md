@@ -4,7 +4,7 @@
 
 # PackUpdater
 
-**A NeoForge mod that updates a PackWiz modpack before Minecraft starts.**
+**A single-jar NeoForge modpack updater that runs before Minecraft starts.**
 
 Configured through a file in the instance, so players never need JVM arguments.
 
@@ -32,6 +32,20 @@ Replacing the installer remains an advanced configuration option; the Packwiz
 tool and existing pack format are unchanged.
 
 See the author guides below or the [release changelog](CHANGELOG.md).
+
+## Minecraft compatibility
+
+PackUpdater is a general NeoForge updater, with loader integrations for both older
+ModLauncher-based releases and newer NeoForge. The current source supports
+**Minecraft 1.20.1, 1.21, 1.21.1, and 26.3 with one jar** and no JVM arguments.
+Those versions have been checked in
+visible Prism desktop launches, including same-launch loading of a downloaded
+test mod and the installer window. Other releases are not yet verified.
+
+See [Compatibility](https://github.com/Jammersmurph/PackUpdater/wiki/Compatibility)
+and [test details](docs/Compatibility.md) for exact tested builds,
+test coverage, and environment limitations. These development changes are not
+part of the existing 1.6.3 release.
 
 ## For modpack authors
 
@@ -123,6 +137,7 @@ See [installer source, artwork, and migration](https://github.com/Jammersmurph/P
 **[github.com/Jammersmurph/PackUpdater/wiki](https://github.com/Jammersmurph/PackUpdater/wiki)**
 
 - [Configuration](https://github.com/Jammersmurph/PackUpdater/wiki/Configuration) — every key, grouped by intent
+- [Compatibility](https://github.com/Jammersmurph/PackUpdater/wiki/Compatibility) — supported versions, one-jar installation, and verification
 - [Optional-mod groups](https://github.com/Jammersmurph/PackUpdater/wiki/Optional-mod-groups) — group configuration and selection behavior
 - [Installer and branding](https://github.com/Jammersmurph/PackUpdater/wiki/Installer-and-branding) — default source, artwork, and migration
 - [Restricted platforms](https://github.com/Jammersmurph/PackUpdater/wiki/Restricted-platforms) — Android launchers and headless servers
@@ -137,7 +152,7 @@ If the tagged commit is on `main` and GitHub marks the release as the latest sta
 release, CI also uploads `packupdater.jar` to
 [Modrinth](https://modrinth.com/mod/packwiz-updater/) using the repository secret
 `MODRINTH_TOKEN`. The token must have permission to create versions on that project.
-Minecraft compatibility comes from `minecraft_version` in `gradle.properties`;
+Minecraft compatibility comes from `supported_minecraft_versions` in `gradle.properties`;
 the loader is NeoForge, and release notes are copied from GitHub.
 
 ## Credits

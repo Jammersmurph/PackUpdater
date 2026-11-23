@@ -1,7 +1,5 @@
 package dev.packupdater;
 
-import net.neoforged.fml.loading.FMLLoader;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -21,9 +19,9 @@ import java.util.Properties;
  *   <li>Built-in default</li>
  * </ol>
  *
- * <p>This runs from a ModLauncher transformation service, long before NeoForge's own
- * config layer is available, so it deliberately uses plain {@link Properties} rather
- * than a NeoForge config type.
+ * <p>This runs before mod discovery, from either a ModLauncher transformation service
+ * or an early mod-file locator. NeoForge's own config layer is not yet available,
+ * so it deliberately uses plain {@link Properties} rather than a NeoForge config type.
  */
 public final class UpdaterConfig {
 
@@ -112,13 +110,9 @@ public final class UpdaterConfig {
 
     /** Resolves the game directory, falling back to the JVM working directory. */
     public static Path gameDirectory() {
-        try {
-            Path dir = FMLLoader.getGamePath();
-            if (dir != null) {
-                return dir;
-            }
-        } catch (Throwable ignored) {
-            // Transformation services initialise before FML has finished wiring up its paths.
+        Path dir = UpdaterStartup.gameDirectory();
+        if (dir != null) {
+            return dir;
         }
         return Paths.get(System.getProperty("user.dir", "."));
     }

@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     tags: ['v*']
   pull_request:
     branches: [main]
@@ -20,7 +20,10 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: |
+            17
+            25
+            21
           distribution: temurin
 
       - name: Rebuild embedded bootstrap
@@ -29,11 +32,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build mod
-        run: ./gradlew build --console=plain
+        run: ./gradlew build --console=plain -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64
 
       - name: Verify the bootstrap jar loads on the Java Minecraft actually ships with
         run: |
-          # Minecraft 1.21.1 runs on Java 21, which loads class files up to version 65. A jar
+          # The oldest supported game release uses Java 17 (class files up to version 61). A jar
           # built on a newer local JDK carries a higher version and kills the fork path for
           # every user with UnsupportedClassVersionError, so this is checked on every build.
           #
@@ -47,11 +50,29 @@ jobs:
             echo "::error::could not read the class file version of the bootstrap jar"
             exit 1
           fi
-          if [ "$major" -gt 65 ]; then
-            echo "::error::bootstrap jar is class file version $major, but Minecraft runs on Java 21 (65)"
+          if [ "$major" -gt 61 ]; then
+            echo "::error::bootstrap jar is class file version $major, but the minimum supported runtime is Java 17 (61)"
             exit 1
           fi
           echo "bootstrap jar is class file version $major"
+
+      - name: Verify the single mod jar targets Java 17
+        run: |
+          python3 - <<'PY'
+          import glob, io, zipfile
+          jars = glob.glob("build/libs/*.jar")
+          assert len(jars) == 1, f"Expected one distributable jar, got {jars}"
+          def verify(jar):
+              for name in jar.namelist():
+                  if name.endswith(".class"):
+                      major = int.from_bytes(jar.read(name)[6:8], "big")
+                      assert major <= 61, f"{name} requires class-file version {major}"
+          with zipfile.ZipFile(jars[0]) as jar:
+              verify(jar)
+              assert not any("compat" in n.lower() and "probe" in n.lower() for n in jar.namelist())
+              with zipfile.ZipFile(io.BytesIO(jar.read("updater/packupdater-bootstrap.jar"))) as bootstrap:
+                  verify(bootstrap)
+          PY
 
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
@@ -72,7 +93,10 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: |
+            17
+            25
+            21
           distribution: temurin
 
       - name: Rebuild embedded bootstrap
@@ -81,7 +105,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build mod
-        run: ./gradlew build --console=plain
+        run: ./gradlew build --console=plain -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64
 
       - name: Publish release
         env:
@@ -174,7 +198,11 @@ jobs:
             "$api/project/packwiz-updater" > modrinth-project.json
           project_id="$(jq -er '.id' modrinth-project.json)"
           version="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2)"
-          minecraft_version="$(grep -E '^minecraft_version=' gradle.properties | cut -d= -f2)"
+          minecraft_versions="$(grep -E '^supported_minecraft_versions=' gradle.properties | cut -d= -f2)"
+          if [ -z "$minecraft_versions" ]; then
+            echo "::error::supported_minecraft_versions must list the verified Minecraft releases."
+            exit 1
+          fi
 
           # Avoid duplicate versions if publication is retried.
           curl --fail-with-body --silent --show-error \
@@ -187,13 +215,13 @@ jobs:
           fi
 
           jq --arg project_id "$project_id" --arg version "$version" \
-            --arg minecraft_version "$minecraft_version" '{
+            --arg minecraft_versions "$minecraft_versions" '{
               project_id: $project_id,
               name: .name,
               version_number: $version,
               changelog: (.body // ""),
               dependencies: [],
-              game_versions: [$minecraft_version],
+              game_versions: ($minecraft_versions | split(",")),
               version_type: "release",
               loaders: ["neoforge"],
               featured: true,

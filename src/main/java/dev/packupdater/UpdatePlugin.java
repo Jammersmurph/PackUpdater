@@ -24,30 +24,7 @@ public class UpdatePlugin implements ITransformationService {
 
     @Override
     public void initialize(IEnvironment environment) {
-        UpdaterConfig config = UpdaterConfig.load(UpdaterConfig.gameDirectory());
-
-        if (config.skip) {
-            PackUpdater.LOGGER.info("[PackUpdater] Skipping update check because '{}' is set.", UpdaterConfig.KEY_SKIP);
-            return;
-        }
-
-        String packUrl = config.effectivePackUrl();
-        if (packUrl.isEmpty()) {
-            PackUpdater.LOGGER.warn(
-                    "[PackUpdater] No pack URL configured ({} is blank and {} is blank or {} is false), skipping update.",
-                    UpdaterConfig.KEY_URL, UpdaterConfig.KEY_DEV_URL, UpdaterConfig.KEY_DEV);
-            return;
-        }
-
-        PackUpdater.LOGGER.info("[PackUpdater] Updating pack from {} (installer: {})", packUrl,
-                config.installerUrl.isEmpty() ? "self-update disabled" : config.installerUrl);
-        try {
-            UpdaterBootstrap.runUpdate(config, packUrl);
-        } catch (Exception e) {
-            // A failed update must never prevent the game from starting; the pack's own
-            // hash verification will catch anything left in a bad state on the next run.
-            PackUpdater.LOGGER.error("[PackUpdater] Update failed: {}", e.toString(), e);
-        }
+        LoaderAccess.startLegacy();
     }
 
     @Override

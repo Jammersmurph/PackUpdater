@@ -1,17 +1,10 @@
 package dev.packupdater;
 
-import net.neoforged.fml.loading.FMLLoader;
-import net.neoforged.fml.loading.ImmediateWindowHandler;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.progress.ProgressMeter;
-import net.neoforged.fml.loading.progress.StartupNotificationManager;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -24,9 +17,6 @@ public final class UpdaterBootstrap {
 
     private static final String BOOTSTRAP_RESOURCE = "/updater/packupdater-bootstrap.jar";
     private static final Pattern PROGRESS_PATTERN = Pattern.compile("^\\((\\d+)/(\\d+)\\)\\s+(.*)$");
-
-    private static ProgressMeter earlyProgress;
-    private static Field stepsField;
 
     private UpdaterBootstrap() {}
 
@@ -152,11 +142,7 @@ public final class UpdaterBootstrap {
             command.add("server");
         }
 
-        try {
-            startupProgressMeter();
-        } catch (Throwable e) {
-            PackUpdater.LOGGER.debug("[PackUpdater] Progress reporting unavailable: {}", e.toString());
-        }
+        LoadingProgress.progress(0, 0);
 
         PackUpdater.LOGGER.info("[PackUpdater] Using pack URL: {}", packUrl);
 
@@ -223,7 +209,7 @@ public final class UpdaterBootstrap {
      * performed directly instead.
      */
     private static void runDirect(UpdaterConfig config, String packUrl, Path gameDir) throws IOException {
-        String side = FMLLoader.getDist() == Dist.CLIENT ? "client" : "server";
+        String side = UpdaterStartup.side();
         PackUpdater.LOGGER.info("[PackUpdater] Installing {} into {} without a child process", packUrl, gameDir);
 
         InProcessInstaller.Result result = InProcessInstaller.sync(
@@ -331,11 +317,7 @@ public final class UpdaterBootstrap {
                 "[PackUpdater] Running without the installer window. {} optional mods that the pack "
                         + "leaves disabled are being skipped, so those will not be installed.",
                 filtered.dropped());
-        try {
-            ImmediateWindowHandler.updateProgress(message);
-        } catch (Throwable ignored) {
-            // Progress reporting is best effort.
-        }
+        LoadingProgress.message(message);
     }
 
     private static boolean forceFallback(UpdaterConfig config) {
@@ -377,16 +359,6 @@ public final class UpdaterBootstrap {
     }
 
     private static final int MAX_CAPTURE = 64 * 1024;
-
-    private static void startupProgressMeter() throws ReflectiveOperationException {
-        List<ProgressMeter> progressList = StartupNotificationManager.getCurrentProgress();
-        if (progressList.isEmpty()) {
-            return;
-        }
-        earlyProgress = progressList.get(0);
-        stepsField = ProgressMeter.class.getDeclaredField("steps");
-        stepsField.setAccessible(true);
-    }
 
     private static void updateLoadingScreen(String rawLine) {
         String cleanLine = rawLine.replace("[PackUpdater]", "").trim();
@@ -445,34 +417,17 @@ public final class UpdaterBootstrap {
             }
         }
 
-        ImmediateWindowHandler.updateProgress(displayMessage);
+        LoadingProgress.message(displayMessage);
     }
 
     private static void setProgressBarState(int current, int total) {
-        if (earlyProgress == null || stepsField == null || total <= 0) {
+        if (total <= 0) {
             return;
         }
-        try {
-            if (earlyProgress.steps() != total) {
-                stepsField.setInt(earlyProgress, total);
-            }
-            earlyProgress.setAbsolute(current);
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            PackUpdater.LOGGER.debug("[PackUpdater] Could not set progress: {}", e.toString());
-        }
+        LoadingProgress.progress(current, total);
     }
 
     private static void setIndeterminate() {
-        if (earlyProgress == null || stepsField == null) {
-            return;
-        }
-        try {
-            if (earlyProgress.steps() != 0) {
-                stepsField.setInt(earlyProgress, 0);
-                earlyProgress.setAbsolute(0);
-            }
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            PackUpdater.LOGGER.debug("[PackUpdater] Could not reset progress: {}", e.toString());
-        }
+        LoadingProgress.progress(0, 0);
     }
 }
